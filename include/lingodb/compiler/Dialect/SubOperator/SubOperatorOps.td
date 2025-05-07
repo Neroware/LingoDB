@@ -10,6 +10,7 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "lingodb/compiler/Dialect/TupleStream/TupleStreamBase.td"
 include "SubOpInterfaces.td"
+include "lingodb/compiler/Dialect/SubOperator/SubOperatorBase.td"
 
 
 //===----------------------------------------------------------------------===//

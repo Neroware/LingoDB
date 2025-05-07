@@ -8,6 +8,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
+include "lingodb/compiler/Dialect/SubOperator/SubOperatorBase.td"
 
 //===----------------------------------------------------------------------===//
 // Graph dialect definition.
@@ -25,9 +26,16 @@ def Graph_Dialect : Dialect {
 // Types
 //===----------------------------------------------------------------------===//
 
-class Graph_Type<string name, string typeMnemonic> : TypeDef<Graph_Dialect, name> {
+class Graph_Type<string name, string typeMnemonic, list<Trait> traits = []> : TypeDef<Graph_Dialect, name, traits> {
     let mnemonic = typeMnemonic;
 }
+
+def MyExampleState : Graph_Type<"MyExampleState", "example_state",[State]> {
+    let summary = "an example state";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
+
 def Graph : Graph_Type<"Graph", "graph"> {
     let summary = "graph type";
 }
