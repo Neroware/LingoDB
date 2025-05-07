@@ -128,6 +128,7 @@ add_subdirectory(src/compiler/mlir-support)
 add_subdirectory(src/compiler/Dialect/RelAlg)
 add_subdirectory(src/compiler/Dialect/TupleStream)
 add_subdirectory(src/compiler/Dialect/SubOperator)
+add_subdirectory(src/compiler/Dialect/Graph)
 
 add_subdirectory(src/compiler/Dialect/DB)
 add_subdirectory(src/compiler/Dialect/DSA)
@@ -153,6 +154,7 @@ set(LIBS
         MLIRRelAlg
         MLIRTupleStream
         MLIRSubOperator
+        MLIRGraph
         MLIRUtil
         MLIRDB
         MLIRDSA
