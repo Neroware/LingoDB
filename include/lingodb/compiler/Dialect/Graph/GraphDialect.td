@@ -62,16 +62,32 @@ def Graph : Graph_Type<"Graph", "graph", [State]> {
     }];
 }
 
+def NodeRef : Graph_Type<"NodeRef", "node_ref", [State]> {
+    let summary = "graph node reference";
+    let parameters = (ins "StateMembersAttr":$nodeMembers, "StateMembersAttr":$incomingMembers, "StateMembersAttr":$outgoingMembers, "StateMembersAttr":$propertyMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($nodeMembers) `,` custom<StateMembers>($incomingMembers) `,` custom<StateMembers>($outgoingMembers) `,` custom<StateMembers>($propertyMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
+}
+def EdgeRef : Graph_Type<"EdgeRef", "edge_ref", [State]> {
+    let summary = "graph edge reference";
+    let parameters = (ins "StateMembersAttr":$edgeMembers, "StateMembersAttr":$fromMembers, "StateMembersAttr":$toMembers, "StateMembersAttr":$propertyMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($edgeMembers) `,` custom<StateMembers>($fromMembers) `,` custom<StateMembers>($toMembers) `,` custom<StateMembers>($propertyMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
+}
+
 //===----------------------------------------------------------------------===//
 // Attributes
 //===----------------------------------------------------------------------===//
 
 class Graph_Attr<string name> : AttrDef<Graph_Dialect, name>;
 
-def PropertyRefAttr : Graph_Attr<"PropertyRef"> {
-    let mnemonic = "propertyref";
-    let parameters = (ins "mlir::SymbolRefAttr":$name); // TODO Add type information
-    let assemblyFormat = "`<` $name `>`"; // TODO use custom assembly format parser/printer
+// Currently needed because otherwise attribute part of the codegen won't run causing a compiler error
+def GraphDummyAttr : Graph_Attr<"GraphDummyAttr"> {
+    let mnemonic = "graph_dummy_attr";
 }
 
 #endif // LINGODB_DIALECT_GRAPH_DIALECT
