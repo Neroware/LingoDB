@@ -20,6 +20,11 @@ def Graph_Dialect : Dialect {
     let cppNamespace = "::lingodb::compiler::dialect::graph";
     let useDefaultTypePrinterParser=1;
     let useDefaultAttributePrinterParser=1;
+    let extraClassDeclaration = [{
+            private:
+            void registerTypes();
+            void registerAttrs();
+        }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -30,33 +35,32 @@ class Graph_Type<string name, string typeMnemonic, list<Trait> traits = []> : Ty
     let mnemonic = typeMnemonic;
 }
 
-def MyExampleState : Graph_Type<"MyExampleState", "example_state",[State]> {
-    let summary = "an example state";
+def NodeSetIterator : Graph_Type<"NodeSetIterator", "node_set_iterator"> {
+    let summary = "node set iterator";
+}
+def EdgeSetIterator : Graph_Type<"EdgeSetIterator", "edge_set_iterator"> {
+    let summary = "edge set iterator";
+}
+
+def NodeSet : Graph_Type<"NodeSet", "node_set", [State]> {
+    let summary = "node set";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
+def EdgeSet : Graph_Type<"EdgeSet", "edge_set", [State]> {
+    let summary = "edge set";
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
 }
 
-def Graph : Graph_Type<"Graph", "graph"> {
-    let summary = "graph type";
+def Graph : Graph_Type<"Graph", "graph", [State]> {
+    let summary = "universal graph type";
+    let parameters = (ins "StateMembersAttr":$nodeMembers, "StateMembersAttr":$edgeMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($nodeMembers) `,` custom<StateMembers>($edgeMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
 }
-def Node : Graph_Type<"Node", "node"> {
-    let summary = "node type";
-}
-def Edge : Graph_Type<"Edge", "edge"> {
-    let summary = "edge type";
-}
-def NodeSet : Graph_Type<"NodeSet", "node_set"> {
-    let summary = "set of nodes";
-}
-def EdgeSet : Graph_Type<"EdgeSet", "edge_set"> {
-    let summary = "set of edges";
-}
-// def NodeIterator : Graph_Type<"NodeIterator", "node_iterator"> {
-//     let summary = "iterator over a set of nodes";
-// }
-// def EdgeIterator : Graph_Type<"EdgeIterator", "edge_iterator"> {
-//     let summary = "iterator over a set of edges";
-// }
 
 //===----------------------------------------------------------------------===//
 // Attributes
