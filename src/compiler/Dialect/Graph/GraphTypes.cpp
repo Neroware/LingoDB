@@ -55,6 +55,32 @@ subop::StateMembersAttr graph::GraphType::getMembers() {
    types.insert(types.end(), getEdgeMembers().getTypes().begin(), getEdgeMembers().getTypes().end());
    return subop::StateMembersAttr::get(this->getContext(), mlir::ArrayAttr::get(this->getContext(), names), mlir::ArrayAttr::get(this->getContext(), types));
 }
+subop::StateMembersAttr graph::NodeRefType::getMembers() {
+   std::vector<mlir::Attribute> names;
+   std::vector<mlir::Attribute> types;
+   names.insert(names.end(), getNodeMembers().getNames().begin(), getNodeMembers().getNames().end());
+   names.insert(names.end(), getIncomingMembers().getNames().begin(), getIncomingMembers().getNames().end());
+   names.insert(names.end(), getOutgoingMembers().getNames().begin(), getOutgoingMembers().getNames().end());
+   names.insert(names.end(), getPropertyMembers().getNames().begin(), getPropertyMembers().getNames().end());
+   types.insert(types.end(), getNodeMembers().getTypes().begin(), getNodeMembers().getTypes().end());
+   types.insert(types.end(), getIncomingMembers().getTypes().begin(), getIncomingMembers().getTypes().end());
+   types.insert(types.end(), getOutgoingMembers().getTypes().begin(), getOutgoingMembers().getTypes().end());
+   types.insert(types.end(), getPropertyMembers().getTypes().begin(), getPropertyMembers().getTypes().end());
+   return subop::StateMembersAttr::get(this->getContext(), mlir::ArrayAttr::get(this->getContext(), names), mlir::ArrayAttr::get(this->getContext(), types));
+}
+subop::StateMembersAttr graph::EdgeRefType::getMembers() {
+   std::vector<mlir::Attribute> names;
+   std::vector<mlir::Attribute> types;
+   names.insert(names.end(), getEdgeMembers().getNames().begin(), getEdgeMembers().getNames().end());
+   names.insert(names.end(), getFromMembers().getNames().begin(), getFromMembers().getNames().end());
+   names.insert(names.end(), getToMembers().getNames().begin(), getToMembers().getNames().end());
+   names.insert(names.end(), getPropertyMembers().getNames().begin(), getPropertyMembers().getNames().end());
+   types.insert(types.end(), getEdgeMembers().getTypes().begin(), getEdgeMembers().getTypes().end());
+   types.insert(types.end(), getFromMembers().getTypes().begin(), getFromMembers().getTypes().end());
+   types.insert(types.end(), getToMembers().getTypes().begin(), getToMembers().getTypes().end());
+   types.insert(types.end(), getPropertyMembers().getTypes().begin(), getPropertyMembers().getTypes().end());
+   return subop::StateMembersAttr::get(this->getContext(), mlir::ArrayAttr::get(this->getContext(), names), mlir::ArrayAttr::get(this->getContext(), types));
+}
 
 #define GET_TYPEDEF_CLASSES
 #include "lingodb/compiler/Dialect/Graph/GraphOpsTypes.cpp.inc"

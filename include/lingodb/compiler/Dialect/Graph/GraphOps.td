@@ -24,6 +24,28 @@ def CreateGraphOp : Graph_Op<"subop.create_graph", [Pure,StateCreator]> {
     let assemblyFormat = [{ type($res) attr-dict }];
 }
 
+def ScanGraphOp : Graph_Op<"subop.scan_graph", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+    let summary = "scan state (sequentially)";
+    let arguments = (ins AnyType : $graph, ColumnDefAttr: $elem);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{ $graph `:` type($graph) custom<CustDef>($elem) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getElem(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
+def ScanNodeSetOp : Graph_Op<"subop.scan_node_set", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+    let summary = "scan state (sequentially)";
+    let arguments = (ins AnyType : $node_set, ColumnDefAttr: $elem);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{ $node_set `:` type($node_set) custom<CustDef>($elem) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getElem(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Iterating over nodes and edges
 ////////////////////////////////////////////////////////////////////////////////////////////////////
