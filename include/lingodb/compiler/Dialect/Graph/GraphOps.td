@@ -18,6 +18,12 @@ class Graph_Op<string mnemonic, list<Trait> traits = []> : Op<Graph_Dialect, mne
     let hasCustomAssemblyFormat = 1;
 }
 
+def CreateGraphOp : Graph_Op<"subop.create_graph", [Pure,StateCreator]> {
+    let summary = "create new graph";
+    let results = (outs Graph : $res);
+    let assemblyFormat = [{ type($res) attr-dict }];
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Iterating over nodes and edges
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,20 +34,20 @@ class Graph_Op<string mnemonic, list<Trait> traits = []> : Op<Graph_Dialect, mne
 // Properties
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-def GetNodePropertyOp : Graph_Op<"get_node_property", [Pure]> {
-    let summary = "get node property operation";
+// def GetNodePropertyOp : Graph_Op<"get_node_property", [Pure]> {
+//     let summary = "get node property operation";
 
-    let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
-    let results = (outs AnyType : $res);
-    let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
-}
+//     let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
+//     let results = (outs AnyType : $res);
+//     let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
+// }
 
-def GetEdgePropertyOp : Graph_Op<"get_edge_property", [Pure]> {
-    let summary = "get edge property operation";
+// def GetEdgePropertyOp : Graph_Op<"get_edge_property", [Pure]> {
+//     let summary = "get edge property operation";
 
-    let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
-    let results = (outs AnyType : $res);
-    let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
-}
+//     let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
+//     let results = (outs AnyType : $res);
+//     let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
+// }
 
 #endif // LINGODB_DIALECT_GRAPH_OPS
