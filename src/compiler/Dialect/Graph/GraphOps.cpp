@@ -129,5 +129,21 @@ mlir::Operation* graph::ScanNodeSetOp::cloneSubOp(mlir::OpBuilder& builder, mlir
    return newOp;
 }
 
+void graph::ScanEdgeSetOp::updateStateType(subop::SubOpStateUsageTransformer& transformer, mlir::Value state, mlir::Type newType) {
+   if (state == getEdgeSet() && newType != state.getType()) {
+      auto newRefType = transformer.getNewRefType(this->getOperation(), getElem().getColumn().type);
+      setElemAttr(transformer.createReplacementColumn(getElemAttr(), newRefType));
+   }
+}
+void graph::ScanEdgeSetOp::replaceColumns(subop::SubOpStateUsageTransformer& transformer, tuples::Column* oldColumn, tuples::Column* newColumn) {
+   assert(false && "should not happen");
+}
+mlir::Operation* graph::ScanEdgeSetOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<ScanNodeSetOp>(this->getLoc(), mapping.lookupOrDefault(getEdgeSet()), columnMapping.clone(getElem()));
+   mapResults(mapping, this->getOperation(), newOp.getOperation());
+
+   return newOp;
+}
+
 #define GET_OP_CLASSES
 #include "lingodb/compiler/Dialect/Graph/GraphOps.cpp.inc"
