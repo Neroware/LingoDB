@@ -4474,51 +4474,36 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          columns.append({columnDef});
          columnValues.append({nodeId});
       });
-      
-
-      // auto nodeMembers = referenceType.getNodeMembers();
-      // auto incomingMembers = referenceType.getIncomingMembers();
-      // auto outgoingMembers = referenceType.getOutgoingMembers();
-      // auto propertyMembers = referenceType.getPropertyMembers();
-      // auto ctxt = gatherOp.getContext();
-      // auto loc = gatherOp.getLoc();
-      // auto ref = mapping.resolve(gatherOp, gatherOp.getRef());
-      // auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 1);
-      // auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
-      // // auto propertyTupleRef = rewriter.create<util::TupleElementPtrOp>(loc, typeConverter->convertType<util::RefType>(referenceType), ref, 4);
-      // llvm::SmallVector<Attribute, 16> columns;
-      // llvm::SmallVector<Value, 16> columnValues;
-      // processMembers(gatherOp, nodeMembers, [&](size_t i, StringAttr name, TypeAttr type){
-      //    auto columnDef = gatherOp.getMapping().get(name);
-      //    auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
-      //    auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
-      //    columns.append({columnDef});
-      //    columnValues.append({nodeId});
-      // });
-      // processMembers(gatherOp, incomingMembers, [&](size_t i, StringAttr name, TypeAttr type){
-      //    auto columnDef = gatherOp.getMapping().get(name);
-      //    auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
-      //    columns.append({columnDef});
-      //    columnValues.append({edgeSet});
-      // });
-      // auto processEdgeSetMembers = [&](size_t i, StringAttr name, TypeAttr type){
-      //    auto columnDef = gatherOp.getMapping().get(name);
-      //    auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
-      //    auto nodeId = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
-      //    auto allocaRef = rewriter.create<util::AllocaOp>(loc, util::RefType::get(ctxt, TupleType::get(ctxt, {edgeSet.getType(), nodeId.getType()})), mlir::Value());
-      //    auto edgeSetRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, edgeSet.getType()), allocaRef, 0);
-      //    auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, nodeId.getType()), allocaRef, 1);
-      //    rewriter.create<util::StoreOp>(loc, edgeSet, edgeSetRef, mlir::Value());
-      //    rewriter.create<util::StoreOp>(loc, nodeId, nodeIdRef, mlir::Value());
-      //    columns.append({columnDef});
-      //    columnValues.append({allocaRef});
-      // };
-      // processMembers(gatherOp, outgoingMembers, processEdgeSetMembers);
-      // processMembers(gatherOp, propertyMembers, processEdgeSetMembers);
+      processMembers(gatherOp, toMembers, [&](size_t i, StringAttr name, TypeAttr type){
+         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(type.getValue()), *typeConverter);
+         auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
+         auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
+         auto nodeBufPtrLen = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+         auto nodeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, nodeEntryType), nodeBufPtr, nodeBufPtrLen);
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 4);
+         auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
+         auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeId);
+         auto columnDef = gatherOp.getMapping().get(name);
+         columns.append({columnDef});
+         columnValues.append({nodeRef});
+      });
+      processMembers(gatherOp, fromMembers, [&](size_t i, StringAttr name, TypeAttr type){
+         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(type.getValue()), *typeConverter);
+         auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
+         auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
+         auto nodeBufPtrLen = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+         auto nodeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, nodeEntryType), nodeBufPtr, nodeBufPtrLen);
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 3);
+         auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
+         auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeId);
+         auto columnDef = gatherOp.getMapping().get(name);
+         columns.append({columnDef});
+         columnValues.append({nodeRef});
+      });
       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
       rewriter.replaceTupleStream(gatherOp, mapping);
-      graphPtr->getParentOfType<ModuleOp>()->dump();
-      return failure();
+      // graphPtr->getParentOfType<ModuleOp>()->dump();
+      return success();
    }
    private:
    void processMembers(GatherOp& gatherOp, StateMembersAttr& members, std::function<void(size_t, StringAttr, TypeAttr)> fn) const {

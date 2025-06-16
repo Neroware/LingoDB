@@ -14,16 +14,24 @@ class PropertyGraph;
 struct GraphNodeSet {
     virtual PropertyGraph* getGraph() = 0;
     virtual BufferIterator* createIterator() = 0;
+    virtual void* getNodesBuf() = 0;
+    virtual size_t getNodesBufLen() = 0;
     static BufferIterator* nodeSetCreateIterator(GraphNodeSet* nodeSet) { return nodeSet->createIterator(); }
     static PropertyGraph* nodeSetGetGraph(GraphNodeSet* nodeSet) { return nodeSet->getGraph(); }
+    static void* nodeSetGetNodesBuf(GraphNodeSet* nodeSet) { return nodeSet->getNodesBuf(); }
+    static size_t nodeSetGetNodesBufLen(GraphNodeSet* nodeSet) { return nodeSet->getNodesBufLen(); }
     virtual ~GraphNodeSet() {}
 }; // GraphNodeSet
 // Represents a set that contains all edges of a graph
 struct GraphEdgeSet {
     virtual PropertyGraph* getGraph() = 0;
     virtual BufferIterator* createIterator() = 0;
+    virtual void* getEdgesBuf() = 0;
+    virtual size_t getEdgesBufLen() = 0;
     static BufferIterator* edgeSetCreateIterator(GraphEdgeSet* edgeSet) { return edgeSet->createIterator(); }
     static PropertyGraph* edgeSetGetGraph(GraphEdgeSet* edgeSet) { return edgeSet->getGraph(); }
+    static void* edgeSetGetEdgesBuf(GraphEdgeSet* edgeSet) { return edgeSet->getEdgesBuf(); }
+    static size_t edgeSetGetEdgesBufLen(GraphEdgeSet* edgeSet) { return edgeSet->getEdgesBufLen(); }
     virtual ~GraphEdgeSet() {}
 }; // GraphEdgeSet
 // Represents a set that contains linked edges connected to a node

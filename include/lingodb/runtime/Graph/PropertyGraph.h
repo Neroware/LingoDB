@@ -33,12 +33,16 @@ class PropertyGraph {
         PropertyGraphNodeSet(PropertyGraph* graph) : graph(graph) {}
         PropertyGraph* getGraph() override { return graph; }
         BufferIterator* createIterator() override;
+        void* getNodesBuf() override { return getGraph()->nodes.ptr; }
+        size_t getNodesBufLen() override { return getGraph()->nodeBufferSize; }
     }; // PropertyGraphNodeSet
     struct PropertyGraphRelationshipSet : GraphEdgeSet {
         PropertyGraph* graph;
         PropertyGraphRelationshipSet(PropertyGraph* graph) : graph(graph) {}
         PropertyGraph* getGraph() override { return graph; }
         BufferIterator* createIterator() override;
+        void* getEdgesBuf() override { return getGraph()->relationships.ptr; }
+        size_t getEdgesBufLen() override { return getGraph()->relBufferSize; }
     }; // PropertyGraphRelationshipSet
     struct PropertyGraphNodeLinkedRelationshipsSet : GraphNodeLinkedEdgesSet {
         PropertyGraph* graph;
