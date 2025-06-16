@@ -4316,7 +4316,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, edgeIdValid);
          ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
          rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
-            auto startEdgeRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, edgeEntryType), lheadPtr);
+            auto startEdgeIdx = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeId);
+            auto startEdgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, startEdgeIdx);
             auto startEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), startEdgeRef, 2);
             auto startEdgeId = rewriter.create<util::LoadOp>(loc, startEdgeIdRef);
 
@@ -4344,15 +4345,15 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto firstEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), firstEq);
                auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 7);
                auto firstNextRel = b.create<util::LoadOp>(loc, firstNextRelRef);
-               auto first = b.create<arith::MulSIExtendedOp>(loc, firstNextRel, firstEqI64);
+               auto first = b.create<arith::AndIOp>(loc, firstNextRel, firstEqI64);
                auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 4);
                auto secondNodeId = b.create<util::LoadOp>(loc, secondNodeIdRef);
                auto secondEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, secondNodeId);
                auto secondEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), secondEq);
                auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 9);
                auto secondNextRel = b.create<util::LoadOp>(loc, secondNextRelRef);
-               auto second = b.create<arith::MulSIExtendedOp>(loc, secondNextRel, secondEqI64);
-               return b.create<arith::AddIOp>(loc, rewriter.getI64Type(), first.getResult(0), second.getResult(0));
+               auto second = b.create<arith::AndIOp>(loc, secondNextRel, secondEqI64);
+               return b.create<arith::OrIOp>(loc, rewriter.getI64Type(), first, second);
             };
             
             auto whileArgType = util::RefType::get(ctxt, llistElemType);
@@ -4367,8 +4368,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto elem = rewriter.create<util::LoadOp>(loc, beforeArg);
                auto valid = isValid(rewriter, loc, elem);
                auto skip = skipCondition(rewriter, loc, elem);
-               auto skipNeg = rewriter.create<db::NotOp>(loc, skip);
-               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skipNeg);
+               // auto skipNeg = rewriter.create<db::NotOp>(loc, skip);
+               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skip);
                ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
                rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
                   // Payload here!!!
