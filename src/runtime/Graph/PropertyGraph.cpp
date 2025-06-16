@@ -109,7 +109,8 @@ PropertyGraph* PropertyGraph::createTestGraph() {
     g->addRelationship(1, 4);
     g->addRelationship(2, 4);
     g->addRelationship(2, 3);
-    g->setRelationshipProperty(0, 111);
+    g->setRelationshipProperty(0, 4242);
+    g->setRelationshipProperty(1, 111);
     g->setRelationshipProperty(2, 222);
     g->setRelationshipProperty(3, 333);
     g->setRelationshipProperty(4, 444);
