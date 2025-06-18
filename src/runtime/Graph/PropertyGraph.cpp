@@ -115,6 +115,12 @@ PropertyGraph* PropertyGraph::createTestGraph() {
     g->setRelationshipProperty(3, 333);
     g->setRelationshipProperty(4, 444);
     g->setRelationshipProperty(5, 555);
+    g->setNodeProperty(0, 42);
+    g->setNodeProperty(1, 11);
+    g->setNodeProperty(2, 22);
+    g->setNodeProperty(3, 33);
+    g->setNodeProperty(4, 44);
+    g->setNodeProperty(5, 55);
     return g;
 }
 void PropertyGraph::destroy(PropertyGraph* graph) {
