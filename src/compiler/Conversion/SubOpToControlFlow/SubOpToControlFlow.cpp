@@ -4516,9 +4516,19 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          columns.append({columnDef});
          columnValues.append({nodeRef});
       });
+      EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
+      auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
+      auto props = storageHelper.loadValues(propRef, rewriter, loc);
+      processMembers(gatherOp, propertyMembers, [&](size_t i, StringAttr name, TypeAttr type){
+         auto value = props.at(name.getValue().str());
+         auto columnDef = gatherOp.getMapping().get(name);
+         columns.append({columnDef});
+         columnValues.append({value});
+      });
       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
       rewriter.replaceTupleStream(gatherOp, mapping);
-      // graphPtr->getParentOfType<ModuleOp>()->dump();
       return success();
    }
    private:
@@ -4527,7 +4537,7 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          for (auto member : gatherOp.getReadMembers()) {
             auto nameAttr = mlir::cast<StringAttr>(members.getNames()[i]);
             if (member != nameAttr.str())
-                break;
+               continue;
             fn(i, nameAttr, mlir::cast<TypeAttr>(members.getTypes()[i]));
          }
       }
