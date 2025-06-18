@@ -4414,7 +4414,6 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto ref = mapping.resolve(gatherOp, gatherOp.getRef());
       auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 1);
       auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
-      // auto propertyTupleRef = rewriter.create<util::TupleElementPtrOp>(loc, typeConverter->convertType<util::RefType>(referenceType), ref, 4);
       llvm::SmallVector<Attribute, 16> columns;
       llvm::SmallVector<Value, 16> columnValues;
       processMembers(gatherOp, nodeMembers, [&](size_t i, StringAttr name, TypeAttr type){
@@ -4443,7 +4442,18 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          columnValues.append({allocaRef});
       };
       processMembers(gatherOp, outgoingMembers, processEdgeSetMembers);
-      processMembers(gatherOp, propertyMembers, processEdgeSetMembers);
+      processMembers(gatherOp, incomingMembers, processEdgeSetMembers);
+      EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
+      auto props = storageHelper.loadValues(propRef, rewriter, loc);
+      processMembers(gatherOp, propertyMembers, [&](size_t i, StringAttr name, TypeAttr type){
+         auto value = props.at(name.getValue().str());
+         auto columnDef = gatherOp.getMapping().get(name);
+         columns.append({columnDef});
+         columnValues.append({value});
+      });
       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
       rewriter.replaceTupleStream(gatherOp, mapping);
       return success();
@@ -4454,7 +4464,7 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          for (auto member : gatherOp.getReadMembers()) {
             auto nameAttr = mlir::cast<StringAttr>(members.getNames()[i]);
             if (member != nameAttr.str())
-                break;
+               continue;
             fn(i, nameAttr, mlir::cast<TypeAttr>(members.getTypes()[i]));
          }
       }
