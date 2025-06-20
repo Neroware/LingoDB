@@ -56,23 +56,34 @@ def ScanEdgeSetOp : Graph_Op<"subop.scan_edge_set", [Pure,SubOperator,ReferenceP
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Properties
+// Property Graph
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// def GetNodePropertyOp : Graph_Op<"get_node_property", [Pure]> {
-//     let summary = "get node property operation";
+// The following operations are strictly runtime-specific for the given PropertyGraph implementation 
+// adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
+// general graph processing IR, which is minimal and complete with lowerings for CreateOp, ScanOp, 
+// GatherOp and ScatterOp.
 
-//     let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
-//     let results = (outs AnyType : $res);
-//     let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
+// def RelationshipTypeOp : Graph_Op<"relationship_type", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+//     let summary = "gather relationship type";
+
+//     let arguments = (ins TupleStream : $stream, ColumnRefAttr: $ref, DictionaryAttr : $mapping );
+//     let results = (outs TupleStream : $res);
+//     let assemblyFormat = [{  $stream custom<CustRef>($ref) custom<StateColumnMapping>($mapping)  attr-dict }];
+//     let extraClassDeclaration = [{
+//         std::vector<std::string> getReadMembers();
+//         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+//     }];
 // }
 
-// def GetEdgePropertyOp : Graph_Op<"get_edge_property", [Pure]> {
-//     let summary = "get edge property operation";
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Graph IR <-> SubOp IR
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//     let arguments = (ins Node:$node,PropertyRefAttr:$propRef);
-//     let results = (outs AnyType : $res);
-//     let assemblyFormat = [{  $node $propRef `:` type($res) attr-dict }];
+// def AdjacencyTableOp : Graph_Op<"adjacency_table", [Pure,StateCreator]> {
+//     let summary = "create adjacency table for relationship";
+//     let results = (outs Buffer : $res);
+//     let assemblyFormat = [{ type($res) attr-dict }];
 // }
 
 #endif // LINGODB_DIALECT_GRAPH_OPS
