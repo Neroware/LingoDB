@@ -4737,6 +4737,49 @@ class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
    }
 };
 
+//PropertyGraph
+
+class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::NodeCountOp nodeCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = nodeCountOp.getLoc();
+      auto ctxt = nodeCountOp.getContext();
+      auto graphPtr = adaptor.getGraph();
+      auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
+      auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+      auto nodeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
+      llvm::SmallVector<mlir::Attribute, 2> columns;
+      llvm::SmallVector<mlir::Value, 2> columnValues;
+      columns.append({nodeCountOp.getRef()});
+      columnValues.append({nodeBufLen});
+      mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
+      rewriter.replaceTupleStream(nodeCountOp, mapping);
+      return success();
+   }
+};
+
+class RelationshipCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::RelationshipCountOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<graph::RelationshipCountOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::RelationshipCountOp relCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = relCountOp.getLoc();
+      auto ctxt = relCountOp.getContext();
+      auto graphPtr = adaptor.getGraph();
+      auto edgeSet = rt::PropertyGraph::getEdgeSet(rewriter, loc)({graphPtr})[0];
+      auto edgeBufLenI64 = rt::GraphEdgeSet::edgeSetGetEdgesBufLen(rewriter, loc)({edgeSet})[0];
+      auto edgeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
+      llvm::SmallVector<mlir::Attribute, 2> columns;
+      llvm::SmallVector<mlir::Value, 2> columnValues;
+      columns.append({relCountOp.getRef()});
+      columnValues.append({edgeBufLen});
+      mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
+      rewriter.replaceTupleStream(relCountOp, mapping);
+      return success();
+   }
+};
+
+
 }; // namespace
 namespace {
 
@@ -4775,6 +4818,9 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<EdgeRefGatherOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<NodeRefScatterOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeRefScatterOpLowering>(typeConverter, ctxt);
+   //PropertyGraph
+   rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<RelationshipCountOpLowering>(typeConverter, ctxt);
 
    //Hashmap
    rewriter.insertPattern<CreateHashMapLowering>(typeConverter, ctxt);
