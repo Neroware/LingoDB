@@ -4554,6 +4554,60 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
    }
 };
 
+class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+
+   LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto refType = scatterOp.getRef().getColumn().type;
+      auto referenceType = mlir::dyn_cast_or_null<graph::NodeRefType>(refType);
+      if (!referenceType) { return failure(); }
+      auto ctxt = scatterOp.getContext();
+      auto loc = scatterOp.getLoc();
+      auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
+      if (!checkAtomicStore(scatterOp)) return failure();
+      auto propertyMembers = referenceType.getPropertyMembers();
+      EntryStorageHelper storageHelper(scatterOp, propertyMembers, false, typeConverter);
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
+      auto values = storageHelper.loadValues(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping()) {
+         values[x.getName().str()] = mapping.resolve(scatterOp, mlir::cast<tuples::ColumnRefAttr>(x.getValue()));
+      }
+      storageHelper.storeValues(propRef, values, rewriter, scatterOp->getLoc());
+      rewriter.eraseOp(scatterOp);
+      return success();
+   }
+};
+
+class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+
+   LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto refType = scatterOp.getRef().getColumn().type;
+      auto referenceType = mlir::dyn_cast_or_null<graph::EdgeRefType>(refType);
+      if (!referenceType) { return failure(); }
+      auto ctxt = scatterOp.getContext();
+      auto loc = scatterOp.getLoc();
+      auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
+      if (!checkAtomicStore(scatterOp)) return failure();
+      auto writtenMembers = scatterOp.getWrittenMembers();
+      EntryStorageHelper storageHelper(scatterOp, referenceType.getPropertyMembers(), false, typeConverter);
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
+      auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
+      auto values = storageHelper.loadValues(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping()) {
+         values[x.getName().str()] = mapping.resolve(scatterOp, mlir::cast<tuples::ColumnRefAttr>(x.getValue()));
+      }
+      storageHelper.storeValues(propRef, values, rewriter, scatterOp->getLoc());
+      rewriter.eraseOp(scatterOp);
+      return success();
+   }
+};
+
 }; // namespace
 namespace {
 
@@ -4590,6 +4644,8 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<ScanEdgeSetLowering>(typeConverter, ctxt);
    rewriter.insertPattern<NodeRefGatherOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeRefGatherOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<NodeRefScatterOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<EdgeRefScatterOpLowering>(typeConverter, ctxt);
 
    //Hashmap
    rewriter.insertPattern<CreateHashMapLowering>(typeConverter, ctxt);
