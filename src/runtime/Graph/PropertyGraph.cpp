@@ -33,7 +33,7 @@ node_id_t PropertyGraph::addNode() {
     node->property = 0;
     return nodeId;
 }
-edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to) {
+edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to, relation_type_id_t type) {
     RelationshipEntry* rel;
     NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
     if (unusedRelEntries.empty()) {
@@ -49,7 +49,7 @@ edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to) {
     rel->id = relId;
     rel->firstNode = from;
     rel->secondNode = to;
-    rel->type = 0;
+    rel->type = type;
     rel->firstNextRelation = rel->firstPrevRelation = rel->secondNextRelation = rel->secondPrevRelation = -1;
     if (fromNode->nextRelationship >= 0) {
         RelationshipEntry* fromNodeRelChain = getRelationship(fromNode->nextRelationship);
