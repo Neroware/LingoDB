@@ -4,6 +4,9 @@
 #include "lingodb/runtime/Graph/GraphSets.h"
 
 namespace lingodb::runtime {
+
+typedef uint64_t relation_type_id_t;
+
 // Implementation of a native property graph following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
 // See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
 class PropertyGraph {
@@ -21,7 +24,7 @@ class PropertyGraph {
         edge_id_t id;
         node_id_t firstNode;
         node_id_t secondNode;
-        int64_t type;
+        relation_type_id_t type;
         edge_id_t firstPrevRelation;
         edge_id_t firstNextRelation;
         edge_id_t secondPrevRelation;
@@ -72,7 +75,7 @@ class PropertyGraph {
 
     public:
     node_id_t addNode();
-    edge_id_t addRelationship(node_id_t from, node_id_t to);
+    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type = 0);
 
     node_id_t removeNode(node_id_t node);
     edge_id_t removeRelationship(edge_id_t rel);
