@@ -61,20 +61,44 @@ def ScanEdgeSetOp : Graph_Op<"subop.scan_edge_set", [Pure,SubOperator,ReferenceP
 
 // The following operations are strictly runtime-specific for the given PropertyGraph implementation 
 // adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
-// general graph processing IR, which is minimal and complete with lowerings for CreateOp, ScanOp, 
+// general graph processing IR, which is minimally complete with lowerings for CreateOp, ScanOp, 
 // GatherOp and ScatterOp.
 
-// def RelationshipTypeOp : Graph_Op<"relationship_type", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
-//     let summary = "gather relationship type";
+def RelationshipTypeOp : Graph_Op<"relationship_type", [Pure,SubOperator,ReferenceProducer]> {
+    let summary = "gather relationship type";
 
-//     let arguments = (ins TupleStream : $stream, ColumnRefAttr: $ref, DictionaryAttr : $mapping );
-//     let results = (outs TupleStream : $res);
-//     let assemblyFormat = [{  $stream custom<CustRef>($ref) custom<StateColumnMapping>($mapping)  attr-dict }];
-//     let extraClassDeclaration = [{
-//         std::vector<std::string> getReadMembers();
-//         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
-//     }];
-// }
+    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $edgeRef, ColumnDefAttr:$valueRef );
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream custom<CustRef>($edgeRef) `is` `a` custom<CustDef>($valueRef) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getValueRef(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
+def NodeCountOp : Graph_Op<"node_count", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+    let summary = "property graph node count";
+
+    let arguments = (ins TupleStream : $stream, Graph : $graph, ColumnDefAttr:$ref);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream `,` $graph `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
+def RelationshipCountOp : Graph_Op<"relationship_count", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+    let summary = "property graph relationship count";
+
+    let arguments = (ins TupleStream : $stream, Graph : $graph, ColumnDefAttr:$ref);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream `,` $graph `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Graph IR <-> SubOp IR
