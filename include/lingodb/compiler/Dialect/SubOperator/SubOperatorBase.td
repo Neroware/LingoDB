@@ -42,8 +42,131 @@ class SubOperator_Attr<string name> : AttrDef<SubOperator_Dialect, name>;
 
 def StateMembers : SubOperator_Attr<"StateMembers"> {
     let mnemonic = "state_members";
-    let parameters = (ins "mlir::ArrayAttr":$names,"mlir::ArrayAttr":$types);
-    let assemblyFormat ="`<` $names `:` $types `>`";
+    let description = "A list of members that are part of the state";
+    // Turn off the ODS storage generation.
+    let genStorageClass = 0;
+    let storageClass = "StateMembersAttrStorage";
+    let storageNamespace = "::lingodb::compiler::dialect::subop::detail";
+
+    let parameters = (ins "llvm::SmallVector<Member>":$memberList);
+    let hasCustomAssemblyFormat = 1;
+    let extraClassDeclaration = [{
+    const llvm::SmallVector<Member>& getMembers() const;
+    }];
+    let extraClassDefinition = [{
+        const llvm::SmallVector<Member>& $cppClass::getMembers() const {
+            return getImpl()->members;
+        }
+    }];
+
+
+}
+
+def ColumnRefMemberMapping : SubOperator_Attr<"ColumnRefMemberMapping"> {
+    let mnemonic = "column_ref_member_mapping";
+    let description = "A mapping from column references to members, e.g., for materializing operations";
+    let parameters = (ins "llvm::SmallVector<std::pair<Member, tuples::ColumnRefAttr>>":$mappingList);
+
+    let genStorageClass = 0;
+    let storageClass = "ColumnRefMemberMappingAttrStorage";
+    let hasCustomAssemblyFormat = 1;
+    let extraClassDeclaration = [{
+        llvm::SmallVector<Member> getMembers() {
+            llvm::SmallVector<Member> members;
+            for (auto& pair : getMapping()) {
+                members.push_back(pair.first);
+            }
+            return members;
+        }
+        Member getMember(tuples::ColumnRefAttr ref) {
+            for (auto& pair : getMapping()) {
+                if (pair.second == ref) {
+                    return pair.first;
+                }
+            }
+            llvm_unreachable("Member not found for ColumnRefAttr");
+        }
+        tuples::ColumnRefAttr getColumnRef(Member member) {
+            for (auto& pair : getMapping()) {
+                if (pair.first == member) {
+                    return pair.second;
+                }
+            }
+            llvm_unreachable("ColumnRefAttr not found for Member");
+        }
+        bool hasMember(Member member) {
+            for (auto& pair : getMapping()) {
+                if (pair.first == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        const llvm::SmallVector<std::pair<Member, tuples::ColumnRefAttr>>& getMapping() const;
+    }];
+    let extraClassDefinition = [{
+        const llvm::SmallVector<std::pair<Member, tuples::ColumnRefAttr>>& $cppClass::getMapping() const {
+            return getImpl()->mapping;
+        }
+       }];
+}
+def ColumnDefMemberMapping : SubOperator_Attr<"ColumnDefMemberMapping"> {
+    let mnemonic = "column_def_member_mapping";
+    let description = "A mapping from members to column definitions, e.g., for scans";
+    let parameters = (ins "llvm::SmallVector<std::pair<Member, tuples::ColumnDefAttr>>":$mappingList);
+
+    let genStorageClass = 0;
+    let storageClass = "ColumnDefMemberMappingAttrStorage";
+    let hasCustomAssemblyFormat = 1;
+    let extraClassDeclaration = [{
+        llvm::SmallVector<Member> getMembers() {
+            llvm::SmallVector<Member> members;
+            for (auto& pair : getMapping()) {
+                members.push_back(pair.first);
+            }
+            return members;
+        }
+        Member getMember(tuples::ColumnDefAttr def) {
+            for (auto& pair : getMapping()) {
+                if (pair.second == def) {
+                    return pair.first;
+                }
+            }
+            llvm_unreachable("Member not found for ColumnDefAttr");
+        }
+        tuples::ColumnDefAttr getColumnDef(Member member) {
+            for (auto& pair : getMapping()) {
+                if (pair.first == member) {
+                    return pair.second;
+                }
+            }
+            llvm_unreachable("ColumnDefAttr not found for Member");
+        }
+        bool hasMember(Member member) {
+            for (auto& pair : getMapping()) {
+                if (pair.first == member) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        const llvm::SmallVector<std::pair<Member, tuples::ColumnDefAttr>>& getMapping() const;
+    }];
+    let extraClassDefinition = [{
+        const llvm::SmallVector<std::pair<Member, tuples::ColumnDefAttr>>& $cppClass::getMapping() const {
+            return getImpl()->mapping;
+        }
+       }];
+}
+
+
+def Member : SubOperator_Attr<"Member"> {
+    let mnemonic = "member";
+    let description = "References a member in a state, e.g., for specifying the members to sort for etc";
+    let parameters = (ins "subop::Member":$member);
+    let genStorageClass = 0;
+    let storageClass = "MemberAttrStorage";
+    let hasCustomAssemblyFormat = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -79,7 +202,7 @@ def SimpleState : SubOperator_Type<"SimpleState", "simple_state",[State,LookupAb
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
         let extraClassDeclaration = [{
             StateMembersAttr getKeyMembers(){
-            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), mlir::ArrayAttr::get(getContext(), {}), mlir::ArrayAttr::get(getContext(), {}));
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
             }
             StateMembersAttr getValueMembers();
         }];
@@ -178,8 +301,8 @@ def SortedView : SubOperator_Type<"SortedView", "sorted_view", [State]> {
 }
 def HashIndexedView : SubOperator_Type<"HashIndexedView", "hash_indexed_view", [State,LookupAbleState]> {
     let summary = "sorted view type";
-    let parameters = (ins "StateMembersAttr":$keyMembers,"StateMembersAttr":$valueMembers );
-    let assemblyFormat = "`<` custom<StateMembers>($keyMembers) `,` custom<StateMembers>($valueMembers) `>`";
+    let parameters = (ins "StateMembersAttr":$keyMembers,"StateMembersAttr":$valueMembers, "bool":$compareHashForLookup);
+    let assemblyFormat = "`<` custom<StateMembers>($keyMembers) `,` custom<StateMembers>($valueMembers) `,` $compareHashForLookup `>`";
      let extraClassDeclaration = [{
         StateMembersAttr getMembers();
      }];
