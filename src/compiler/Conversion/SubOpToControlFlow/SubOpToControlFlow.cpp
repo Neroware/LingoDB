@@ -4190,14 +4190,15 @@ class ScanNodeSetLowering : public SubOpConversionPattern<graph::ScanNodeSetOp> 
    public:
    using SubOpConversionPattern<graph::ScanNodeSetOp>::SubOpConversionPattern;
    LogicalResult matchAndRewrite(graph::ScanNodeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto nodeSetType = mlir::dyn_cast_or_null<graph::NodeSetType>(scanRefsOp.getNodeSet().getType());
       if (!nodeSetType) return failure();
       auto nodeRefColType = scanRefsOp.getProducedReference().getColumn().type;
       auto nodeRefType = mlir::dyn_cast_or_null<graph::NodeRefType>(nodeRefColType);
       if (!nodeRefType) return failure();
-      if (nodeSetType.getMembers().getTypes().size() == 0) assert(false && "Node set requires an iterator member!");
-      auto nodeSetIt = mlir::dyn_cast<mlir::TypeAttr>(*(nodeSetType.getMembers().getTypes().begin()));
-      auto nodeSetItType = mlir::dyn_cast_or_null<graph::NodeSetIteratorType>(nodeSetIt.getValue());
+      if (nodeSetType.getMembers().getMembers().size() == 0) assert(false && "Node set requires an iterator member!");
+      auto nodeSetIt = memberManager.getType(*(nodeSetType.getMembers().getMembers().begin()));
+      auto nodeSetItType = mlir::dyn_cast_or_null<graph::NodeSetIteratorType>(nodeSetIt);
       if (!nodeSetItType) assert(false && "Node set requires an iterator member!");
       if (nodeSetItType.getStrategy().size() == 0) assert(false && "Node set iterator requires an iteration strategy!");
       auto nodeSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(nodeSetItType.getStrategy().begin()));
@@ -4225,14 +4226,15 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
    public:
    using SubOpConversionPattern<graph::ScanEdgeSetOp>::SubOpConversionPattern;
    LogicalResult matchAndRewrite(graph::ScanEdgeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto edgeSetType = mlir::dyn_cast_or_null<graph::EdgeSetType>(scanRefsOp.getEdgeSet().getType());
       if (!edgeSetType) return failure();
       auto edgeRefColType = scanRefsOp.getProducedReference().getColumn().type;
       auto edgeRefType = mlir::dyn_cast_or_null<graph::EdgeRefType>(edgeRefColType);
       if (!edgeRefType) return failure();
-      if (edgeRefType.getMembers().getTypes().size() == 0) assert(false && "Edge set requires an iterator member!");
-      auto edgeSetIt = mlir::dyn_cast<mlir::TypeAttr>(*(edgeSetType.getMembers().getTypes().begin()));
-      auto edgeSetItType = mlir::dyn_cast_or_null<graph::EdgeSetIteratorType>(edgeSetIt.getValue());
+      if (edgeRefType.getMembers().getMembers().size() == 0) assert(false && "Edge set requires an iterator member!");
+      auto edgeSetIt = memberManager.getType(*(edgeSetType.getMembers().getMembers().begin()));
+      auto edgeSetItType = mlir::dyn_cast_or_null<graph::EdgeSetIteratorType>(edgeSetIt);
       if (!edgeSetItType) assert(false && "Edge set requires an iterator member!");
       if (edgeSetItType.getStrategy().size() == 0) assert(false && "Edge set iterator requires an iteration strategy!");
       auto edgeSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(edgeSetItType.getStrategy().begin()));
@@ -4531,6 +4533,7 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
    public:
    using SubOpTupleStreamConsumerConversionPattern<subop::GatherOp, 2>::SubOpTupleStreamConsumerConversionPattern;
    LogicalResult matchAndRewrite(subop::GatherOp gatherOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto refType = gatherOp.getRef().getColumn().type;
       auto referenceType = mlir::dyn_cast_or_null<graph::NodeRefType>(refType);
       if (!referenceType) { return failure(); }
@@ -4545,21 +4548,21 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
       llvm::SmallVector<Attribute, 16> columns;
       llvm::SmallVector<Value, 16> columnValues;
-      processMembers(gatherOp, nodeMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto columnDef = gatherOp.getMapping().get(name);
+      processMembers(gatherOp, nodeMembers, memberManager, [&](size_t i, const Member& member){
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          columns.append({columnDef});
          columnValues.append({nodeId});
       });
-      processMembers(gatherOp, incomingMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto columnDef = gatherOp.getMapping().get(name);
+      processMembers(gatherOp, incomingMembers, memberManager, [&](size_t i, const Member& member){
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
          columns.append({columnDef});
          columnValues.append({edgeSet});
       });
-      auto processEdgeSetMembers = [&](size_t i, StringAttr name, TypeAttr type){
-         auto columnDef = gatherOp.getMapping().get(name);
+      auto processEdgeSetMembers = [&](size_t i, const Member& member){
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
          auto nodeId = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
          auto allocaRef = rewriter.create<util::AllocaOp>(loc, util::RefType::get(ctxt, TupleType::get(ctxt, {edgeSet.getType(), nodeId.getType()})), mlir::Value());
@@ -4570,16 +4573,16 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          columns.append({columnDef});
          columnValues.append({allocaRef});
       };
-      processMembers(gatherOp, outgoingMembers, processEdgeSetMembers);
-      processMembers(gatherOp, incomingMembers, processEdgeSetMembers);
+      processMembers(gatherOp, outgoingMembers, memberManager, processEdgeSetMembers);
+      processMembers(gatherOp, incomingMembers, memberManager, processEdgeSetMembers);
       EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
       auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
-      auto props = storageHelper.loadValues(propRef, rewriter, loc);
-      processMembers(gatherOp, propertyMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto value = props.at(name.getValue().str());
-         auto columnDef = gatherOp.getMapping().get(name);
+      auto props = storageHelper.getValueMap(propRef, rewriter, loc);
+      processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
+         auto value = props.get(member);
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({value});
       });
@@ -4588,13 +4591,14 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       return success();
    }
    private:
-   void processMembers(GatherOp& gatherOp, StateMembersAttr& members, std::function<void(size_t, StringAttr, TypeAttr)> fn) const {
-      for (size_t i = 0; i < members.getNames().size(); i++) {
+   void processMembers(GatherOp& gatherOp, StateMembersAttr& members, MemberManager& memberManager, std::function<void(size_t i, const Member& member)> fn) const {
+      for (size_t i = 0; i < members.getMembers().size(); i++) {
          for (auto member : gatherOp.getReadMembers()) {
-            auto nameAttr = mlir::cast<StringAttr>(members.getNames()[i]);
-            if (member != nameAttr.str())
+            auto other = members.getMembers()[i];
+            auto name = memberManager.getName(member);
+            if (name != memberManager.getName(other))
                continue;
-            fn(i, nameAttr, mlir::cast<TypeAttr>(members.getTypes()[i]));
+            fn(i, member);
          }
       }
    }
@@ -4604,6 +4608,7 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
    public:
    using SubOpTupleStreamConsumerConversionPattern<subop::GatherOp, 2>::SubOpTupleStreamConsumerConversionPattern;
    LogicalResult matchAndRewrite(subop::GatherOp gatherOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto refType = gatherOp.getRef().getColumn().type;
       auto referenceType = mlir::dyn_cast_or_null<graph::EdgeRefType>(refType);
       if (!referenceType) { return failure(); }
@@ -4618,15 +4623,15 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
       llvm::SmallVector<Attribute, 16> columns;
       llvm::SmallVector<Value, 16> columnValues;
-      processMembers(gatherOp, edgeMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto columnDef = gatherOp.getMapping().get(name);
+      processMembers(gatherOp, edgeMembers, memberManager, [&](size_t i, const Member& member){
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          auto edgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
          auto nodeId = rewriter.create<util::LoadOp>(loc, edgeIdRef);
          columns.append({columnDef});
          columnValues.append({nodeId});
       });
-      processMembers(gatherOp, toMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(type.getValue()), *typeConverter);
+      processMembers(gatherOp, toMembers, memberManager, [&](size_t i, const Member& member){
+         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(memberManager.getType(member)), *typeConverter);
          auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
          auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
          auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
@@ -4636,12 +4641,12 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          auto nodeIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeId);
          auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeIndex);
-         auto columnDef = gatherOp.getMapping().get(name);
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({nodeRef});
       });
-      processMembers(gatherOp, fromMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(type.getValue()), *typeConverter);
+      processMembers(gatherOp, fromMembers, memberManager, [&](size_t i, const Member& member){
+         auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(memberManager.getType(member)), *typeConverter);
          auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
          auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
          auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
@@ -4651,7 +4656,7 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          auto nodeIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeId);
          auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeIndex);
-         auto columnDef = gatherOp.getMapping().get(name);
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({nodeRef});
       });
@@ -4659,10 +4664,10 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
-      auto props = storageHelper.loadValues(propRef, rewriter, loc);
-      processMembers(gatherOp, propertyMembers, [&](size_t i, StringAttr name, TypeAttr type){
-         auto value = props.at(name.getValue().str());
-         auto columnDef = gatherOp.getMapping().get(name);
+      auto props = storageHelper.getValueMap(propRef, rewriter, loc);
+      processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
+         auto value = props.get(member);
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({value});
       });
@@ -4671,13 +4676,14 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       return success();
    }
    private:
-   void processMembers(GatherOp& gatherOp, StateMembersAttr& members, std::function<void(size_t, StringAttr, TypeAttr)> fn) const {
-      for (size_t i = 0; i < members.getNames().size(); i++) {
+   void processMembers(GatherOp& gatherOp, StateMembersAttr& members, MemberManager& memberManager, std::function<void(size_t i, const Member& member)> fn) const {
+      for (size_t i = 0; i < members.getMembers().size(); i++) {
          for (auto member : gatherOp.getReadMembers()) {
-            auto nameAttr = mlir::cast<StringAttr>(members.getNames()[i]);
-            if (member != nameAttr.str())
+            auto other = members.getMembers()[i];
+            auto name = memberManager.getName(member);
+            if (name != memberManager.getName(other))
                continue;
-            fn(i, nameAttr, mlir::cast<TypeAttr>(members.getTypes()[i]));
+            fn(i, member);
          }
       }
    }
@@ -4700,11 +4706,11 @@ class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
-      auto values = storageHelper.loadValues(propRef, rewriter, loc);
-      for (auto x : scatterOp.getMapping()) {
-         values[x.getName().str()] = mapping.resolve(scatterOp, mlir::cast<tuples::ColumnRefAttr>(x.getValue()));
+      auto values = storageHelper.getValueMap(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping().getMapping()) {
+         values.set(x.first, mapping.resolve(scatterOp, x.second));
       }
-      storageHelper.storeValues(propRef, values, rewriter, scatterOp->getLoc());
+      values.store();
       rewriter.eraseOp(scatterOp);
       return success();
    }
@@ -4727,11 +4733,11 @@ class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
-      auto values = storageHelper.loadValues(propRef, rewriter, loc);
-      for (auto x : scatterOp.getMapping()) {
-         values[x.getName().str()] = mapping.resolve(scatterOp, mlir::cast<tuples::ColumnRefAttr>(x.getValue()));
+      auto values = storageHelper.getValueMap(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping().getMapping()) {
+         values.set(x.first, mapping.resolve(scatterOp, x.second));
       }
-      storageHelper.storeValues(propRef, values, rewriter, scatterOp->getLoc());
+      values.store();
       rewriter.eraseOp(scatterOp);
       return success();
    }
