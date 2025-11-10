@@ -59,7 +59,7 @@ def ScanEdgeSetOp : Graph_Op<"subop.scan_edge_set", [Pure,SubOperator,ReferenceP
 // Property Graph
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// The following operations are strictly runtime-specific for the given PropertyGraph implementation 
+// The following operations are strictly runtime-specific for the given PropertyGraph data structure 
 // adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
 // general graph processing IR, which is minimally complete with lowerings for CreateOp, ScanOp, 
 // GatherOp and ScatterOp.

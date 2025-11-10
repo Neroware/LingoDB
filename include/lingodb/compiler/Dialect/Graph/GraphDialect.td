@@ -35,13 +35,8 @@ class Graph_Type<string name, string typeMnemonic, list<Trait> traits = []> : Ty
     let mnemonic = typeMnemonic;
 }
 
-def NodeSetIterator : Graph_Type<"NodeSetIterator", "node_set_iterator"> {
-    let summary = "node set iterator";
-    let parameters = (ins "mlir::ArrayAttr":$strategy);
-    let assemblyFormat = "`<` $strategy `>`";
-}
-def EdgeSetIterator : Graph_Type<"EdgeSetIterator", "edge_set_iterator"> {
-    let summary = "edge set iterator";
+def GraphSetIterator : Graph_Type<"GraphSetIterator", "graph_set_iterator"> {
+    let summary = "graph set iterator";
     let parameters = (ins "mlir::ArrayAttr":$strategy);
     let assemblyFormat = "`<` $strategy `>`";
 }
@@ -81,6 +76,26 @@ def EdgeRef : Graph_Type<"EdgeRef", "edge_ref", [State]> {
     let extraClassDeclaration = [{
         StateMembersAttr getMembers();
     }];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Property Graph
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The following types are strictly runtime-specific for the given PropertyGraph data structure 
+// adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
+// general graph processing IR, which is minimally complete with types for graphs, node sets, nodes 
+// edge sets and edges.
+
+def PropertySet : Graph_Type<"PropertySet", "property_set", [State]> {
+    let summary = "property set";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
+def PropertyRef : Graph_Type<"PropertyRef", "property_ref", [State]> {
+    let summary = "property reference";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
 }
 
 //===----------------------------------------------------------------------===//

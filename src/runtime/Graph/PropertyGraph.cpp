@@ -95,11 +95,11 @@ void PropertyGraph::setRelationshipProperty(edge_id_t id, int64_t value) {
 int64_t PropertyGraph::getRelationshipProperty(edge_id_t id) const {
     return getRelationship(id)->property;
 }
-PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) {
-    return new PropertyGraph(initialNodeCapacity, initialRelationshipCapacity);
+PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity) {
+    return new PropertyGraph(initialNodeCapacity, initialRelationshipCapacity, initialPropertyCapacity);
 }
 PropertyGraph* PropertyGraph::createTestGraph() {
-    auto g = new PropertyGraph(16, 256);
+    auto g = new PropertyGraph(16, 256, 256);
     for (int i = 0; i < 6; i++) {
         g->addNode();
     }

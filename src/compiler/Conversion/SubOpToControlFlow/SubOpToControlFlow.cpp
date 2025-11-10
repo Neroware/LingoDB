@@ -4198,7 +4198,7 @@ class ScanNodeSetLowering : public SubOpConversionPattern<graph::ScanNodeSetOp> 
       if (!nodeRefType) return failure();
       if (nodeSetType.getMembers().getMembers().size() == 0) assert(false && "Node set requires an iterator member!");
       auto nodeSetIt = memberManager.getType(*(nodeSetType.getMembers().getMembers().begin()));
-      auto nodeSetItType = mlir::dyn_cast_or_null<graph::NodeSetIteratorType>(nodeSetIt);
+      auto nodeSetItType = mlir::dyn_cast_or_null<graph::GraphSetIteratorType>(nodeSetIt);
       if (!nodeSetItType) assert(false && "Node set requires an iterator member!");
       if (nodeSetItType.getStrategy().size() == 0) assert(false && "Node set iterator requires an iteration strategy!");
       auto nodeSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(nodeSetItType.getStrategy().begin()));
@@ -4234,7 +4234,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       if (!edgeRefType) return failure();
       if (edgeRefType.getMembers().getMembers().size() == 0) assert(false && "Edge set requires an iterator member!");
       auto edgeSetIt = memberManager.getType(*(edgeSetType.getMembers().getMembers().begin()));
-      auto edgeSetItType = mlir::dyn_cast_or_null<graph::EdgeSetIteratorType>(edgeSetIt);
+      auto edgeSetItType = mlir::dyn_cast_or_null<graph::GraphSetIteratorType>(edgeSetIt);
       if (!edgeSetItType) assert(false && "Edge set requires an iterator member!");
       if (edgeSetItType.getStrategy().size() == 0) assert(false && "Edge set iterator requires an iteration strategy!");
       auto edgeSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(edgeSetItType.getStrategy().begin()));

@@ -1,6 +1,7 @@
 #ifndef LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
 #define LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
 
+#include "lingodb/runtime/Graph/PropertyTable.h"
 #include "lingodb/runtime/Graph/GraphSets.h"
 
 namespace lingodb::runtime {
@@ -13,6 +14,7 @@ class PropertyGraph {
     private:
     struct NodeEntry {
         bool inUse;
+        // TODO Change conversion of !graph.node_ref to tuple<!util.ref<i8>, !util.ref<i8>> to eliminate this field!
         PropertyGraph* graph;
         node_id_t id;
         edge_id_t nextRelationship;
@@ -20,6 +22,7 @@ class PropertyGraph {
     }; // NodeEntry
     struct RelationshipEntry {
         bool inUse;
+        // TODO Change conversion of !graph.edge_ref to tuple<!util.ref<i8>, !util.ref<i8>> to eliminate this field!
         PropertyGraph* graph;
         edge_id_t id;
         node_id_t firstNode;
@@ -57,13 +60,14 @@ class PropertyGraph {
     }; // PropertyGraphNodeLinkedRelationshipsSet
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
     runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
+    runtime::LegacyFixedSizedBuffer<PropertyEntry> properties;
     std::vector<NodeEntry*> unusedNodeEntries;
     std::vector<RelationshipEntry*> unusedRelEntries;
     PropertyGraphNodeSet nodeSet;
     PropertyGraphRelationshipSet edgeSet;
     PropertyGraphNodeLinkedRelationshipsSet connectionsSet;
-    PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity) 
-        : nodes(maxNodeCapacity), relationships(maxRelCapacity), nodeSet(this), edgeSet(this), connectionsSet(this) {}
+    PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
+        : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity), nodeSet(this), edgeSet(this), connectionsSet(this) {}
 
     node_id_t nodeBufferSize = 0;
     edge_id_t relBufferSize = 0;
@@ -85,7 +89,7 @@ class PropertyGraph {
     void setRelationshipProperty(edge_id_t id, int64_t value);
     int64_t getRelationshipProperty(edge_id_t id) const;
 
-    static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
+    static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity);
     static PropertyGraph* createTestGraph();
     static void destroy(PropertyGraph*);
 
