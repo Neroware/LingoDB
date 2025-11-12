@@ -67,7 +67,10 @@ class PropertyGraph {
     PropertyGraphRelationshipSet edgeSet;
     PropertyGraphNodeLinkedRelationshipsSet connectionsSet;
     PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
-        : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity), nodeSet(this), edgeSet(this), connectionsSet(this) {}
+        : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity), nodeSet(this), edgeSet(this), connectionsSet(this) {
+            PropertyGraphRuntimeIterationHelper::graphs.insert({(void*) nodes.ptr, this});
+            PropertyGraphRuntimeIterationHelper::graphs.insert({(void*) relationships.ptr, this});
+        }
 
     node_id_t nodeBufferSize = 0;
     edge_id_t relBufferSize = 0;
@@ -99,6 +102,18 @@ class PropertyGraph {
 
     Buffer getNodeBuffer() { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
     Buffer getRelationshipBuffer() { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+
+    // A helper struct with runtime functions aiding in Property Graph iteration strategies
+    struct PropertyGraphRuntimeIterationHelper {
+        static std::unordered_map<void*, PropertyGraph*> graphs;
+        static BufferIterator* createNodeIterator(PropertyGraph* graph);
+        static BufferIterator* createEdgeIterator(PropertyGraph* graph);
+        static void* getNodeBufferPtr(void* ref);
+        static void* getEdgeBufferPtr(void* ref);
+        static size_t getNodeBufferLen(void* ptr);
+        static size_t getEdgeBufferLen(void* ptr);
+        static void* getConnectedEdgesLListOf(void* nodeRef);
+    }; // PropertyGraphRuntimeIterationHelper
 
 }; // PropertyGraphLinkedRelationshipsSet
 } // lingodb::runtime::graph

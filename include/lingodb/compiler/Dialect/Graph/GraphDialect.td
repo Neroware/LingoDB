@@ -84,7 +84,7 @@ def EdgeRef : Graph_Type<"EdgeRef", "edge_ref", [State]> {
 
 // The following types are strictly runtime-specific for the given PropertyGraph data structure 
 // adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
-// general graph processing IR, which is minimally complete with types for graphs, node sets, nodes 
+// general graph processing IR, which is minimally complete with types for graphs, node sets, nodes, 
 // edge sets and edges.
 
 def PropertySet : Graph_Type<"PropertySet", "property_set", [State]> {

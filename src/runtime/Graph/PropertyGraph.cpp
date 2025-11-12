@@ -166,4 +166,64 @@ BufferIterator* PropertyGraph::PropertyGraphRelationshipSet::createIterator() {
     return new PropertyGraphEdgeSetIterator(*this);
 }
 
+class PropertyGraphNodeIterator : public BufferIterator {
+    PropertyGraph* graph;
+    bool valid;
+    public:
+    PropertyGraphNodeIterator(PropertyGraph* graph) 
+        : graph(graph), valid(true) {}
+    bool isValid() override { return valid; }
+    void next() override { valid = false; }
+    Buffer getCurrentBuffer() override { return graph->getNodeBuffer(); }
+    void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
+        // TODO No parallelism in PropertyGraph iterators yet...
+        auto buffer = getCurrentBuffer();
+        forEachChunk(buffer, contextPtr);
+    }
+}; // PropertyGraphNodeIterator
+class PropertyGraphEdgeIterator : public BufferIterator {
+    PropertyGraph* graph;
+    bool valid;
+    public:
+    PropertyGraphEdgeIterator(PropertyGraph* graph) 
+        : graph(graph), valid(true) {}
+    bool isValid() override { return valid; }
+    void next() override { valid = false; }
+    Buffer getCurrentBuffer() override { return graph->getRelationshipBuffer(); }
+    void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
+        // TODO No parallelism in PropertyGraph iterators yet...
+        auto buffer = getCurrentBuffer();
+        forEachChunk(buffer, contextPtr);
+    }
+}; // PropertyGraphEdgeIterator
+BufferIterator* PropertyGraph::PropertyGraphRuntimeIterationHelper::createNodeIterator(PropertyGraph* graph) {
+    return new PropertyGraphNodeIterator(graph);
+}
+BufferIterator* PropertyGraph::PropertyGraphRuntimeIterationHelper::createEdgeIterator(PropertyGraph* graph) {
+    return new PropertyGraphEdgeIterator(graph);
+}
+void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getNodeBufferPtr(void* nodeRef) {
+    NodeEntry* entry = (NodeEntry*) nodeRef;
+    entry -= entry->id;
+    return (void*) entry;
+}
+void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getEdgeBufferPtr(void* edgeRef) {
+    RelationshipEntry* entry = (RelationshipEntry*) edgeRef;
+    entry -= entry->id;
+    return (void*) entry;
+}
+size_t PropertyGraph::PropertyGraphRuntimeIterationHelper::getNodeBufferLen(void* ptr) {
+    return graphs.at(ptr)->nodeBufferSize;
+}
+size_t PropertyGraph::PropertyGraphRuntimeIterationHelper::getEdgeBufferLen(void* ptr) {
+    return graphs.at(ptr)->relBufferSize;
+}
+void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getConnectedEdgesLListOf(void* nodeRef) {
+    void* ptr = getNodeBufferPtr(nodeRef);
+    NodeEntry* entry = (NodeEntry*) nodeRef;
+    PropertyGraph* graph = graphs.at(ptr);
+    return graph->relationships.ptr + entry->nextRelationship;
+}
+std::unordered_map<void*, PropertyGraph*> PropertyGraph::PropertyGraphRuntimeIterationHelper::graphs;
+
 } // lingodb::runtime::graph
