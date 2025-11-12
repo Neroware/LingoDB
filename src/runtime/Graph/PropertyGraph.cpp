@@ -196,34 +196,34 @@ class PropertyGraphEdgeIterator : public BufferIterator {
         forEachChunk(buffer, contextPtr);
     }
 }; // PropertyGraphEdgeIterator
-BufferIterator* PropertyGraph::PropertyGraphRuntimeIterationHelper::createNodeIterator(PropertyGraph* graph) {
+BufferIterator* PropertyGraph::createNodeIterator(PropertyGraph* graph) {
     return new PropertyGraphNodeIterator(graph);
 }
-BufferIterator* PropertyGraph::PropertyGraphRuntimeIterationHelper::createEdgeIterator(PropertyGraph* graph) {
+BufferIterator* PropertyGraph::createEdgeIterator(PropertyGraph* graph) {
     return new PropertyGraphEdgeIterator(graph);
 }
-void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getNodeBufferPtr(void* nodeRef) {
+void* PropertyGraph::getNodeBufferPtr(void* nodeRef) {
     NodeEntry* entry = (NodeEntry*) nodeRef;
     entry -= entry->id;
     return (void*) entry;
 }
-void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getEdgeBufferPtr(void* edgeRef) {
+void* PropertyGraph::getEdgeBufferPtr(void* edgeRef) {
     RelationshipEntry* entry = (RelationshipEntry*) edgeRef;
     entry -= entry->id;
     return (void*) entry;
 }
-size_t PropertyGraph::PropertyGraphRuntimeIterationHelper::getNodeBufferLen(void* ptr) {
+size_t PropertyGraph::getNodeBufferLen(void* ptr) {
     return graphs.at(ptr)->nodeBufferSize;
 }
-size_t PropertyGraph::PropertyGraphRuntimeIterationHelper::getEdgeBufferLen(void* ptr) {
+size_t PropertyGraph::getEdgeBufferLen(void* ptr) {
     return graphs.at(ptr)->relBufferSize;
 }
-void* PropertyGraph::PropertyGraphRuntimeIterationHelper::getConnectedEdgesLListOf(void* nodeRef) {
+void* PropertyGraph::getEdgesLListOf(void* nodeRef) {
     void* ptr = getNodeBufferPtr(nodeRef);
     NodeEntry* entry = (NodeEntry*) nodeRef;
     PropertyGraph* graph = graphs.at(ptr);
     return graph->relationships.ptr + entry->nextRelationship;
 }
-std::unordered_map<void*, PropertyGraph*> PropertyGraph::PropertyGraphRuntimeIterationHelper::graphs;
+std::unordered_map<void*, PropertyGraph*> PropertyGraph::graphs;
 
 } // lingodb::runtime::graph
