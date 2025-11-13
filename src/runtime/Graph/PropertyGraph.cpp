@@ -165,5 +165,9 @@ BufferIterator* PropertyGraph::PropertyGraphNodeSet::createIterator() {
 BufferIterator* PropertyGraph::PropertyGraphRelationshipSet::createIterator() {
     return new PropertyGraphEdgeSetIterator(*this);
 }
+void* PropertyGraph::getLinkedEdgesLListHeadOf(void* ref) const {
+    NodeEntry* node = (NodeEntry*) ref;
+    return (void*) getRelationship(node->nextRelationship);
+}
 
 } // lingodb::runtime::graph
