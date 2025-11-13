@@ -4264,7 +4264,9 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
    LogicalResult genIterationStrategyAll(graph::ScanEdgeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::EdgeRefType edgeRefType) const {
       ColumnMapping mapping;
       auto loc = scanRefsOp->getLoc();
-      auto it = rt::GraphEdgeSet::edgeSetCreateIterator(rewriter, loc)({adaptor.getEdgeSet()})[0];
+      auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), util::RefType::get(rewriter.getContext(), rewriter.getI8Type())), adaptor.getEdgeSet(), 1);
+      auto graph = rewriter.create<util::LoadOp>(loc, graphRef);
+      auto it = rt::PropertyGraph::createEdgeIterator(rewriter, loc)({graph})[0];
       auto edgeEntryType = getEdgeEntryType(edgeRefType, *typeConverter);
       implementBufferIteration(scanRefsOp->hasAttr("parallel"), it, edgeEntryType, loc, rewriter, *typeConverter, scanRefsOp.getOperation(), [&](SubOpRewriter& rewriter, mlir::Value ptr) {
          auto inUseRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), rewriter.getI1Type()), ptr, 0);
