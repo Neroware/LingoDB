@@ -93,12 +93,22 @@ class PropertyGraph {
     static PropertyGraph* createTestGraph();
     static void destroy(PropertyGraph*);
 
+    // Depricated WILL BE REMOVED ASAP!
+
     GraphNodeSet* getNodeSet() { return &nodeSet; }
     GraphEdgeSet* getEdgeSet() { return &edgeSet; };
     GraphNodeLinkedEdgesSet* getNodeLinkedEdgeSet() { return &connectionsSet; }
 
-    Buffer getNodeBuffer() { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
-    Buffer getRelationshipBuffer() { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+    // Methods aiding in grapth iterations
+
+    Buffer getNodeBuffer() const { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
+    Buffer getEdgeBuffer() const { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+    BufferIterator* createNodeIterator() { return nodeSet.createIterator(); } // TODO Move implementation into CPP file
+    BufferIterator* createEdgeIterator() { return edgeSet.createIterator(); } // TODO Move implementation into CPP file
+    void* getNodeBufferPtr() const { return (void*) nodes.ptr; }
+    void* getEdgeBufferPtr() const { return (void*) relationships.ptr; }
+    size_t getNodeBufferLen() const { return nodeBufferSize; }
+    size_t getEdgeBufferLen() const { return relBufferSize; }
 
 }; // PropertyGraphLinkedRelationshipsSet
 } // lingodb::runtime::graph

@@ -152,7 +152,7 @@ class PropertyGraphEdgeSetIterator : public BufferIterator {
         : edgeSet(edgeSet), valid(true) {}
     bool isValid() override { return valid; }
     void next() override { valid = false; }
-    Buffer getCurrentBuffer() override { return edgeSet.getGraph()->getRelationshipBuffer(); }
+    Buffer getCurrentBuffer() override { return edgeSet.getGraph()->getEdgeBuffer(); }
     void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
         // TODO No parallelism in PropertyGraph iterators yet...
         auto buffer = getCurrentBuffer();
