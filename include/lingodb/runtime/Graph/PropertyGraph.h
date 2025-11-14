@@ -109,7 +109,7 @@ class PropertyGraph {
     void* getEdgeBufferPtr() const { return (void*) relationships.ptr; }
     size_t getNodeBufferLen() const { return nodeBufferSize; }
     size_t getEdgeBufferLen() const { return relBufferSize; }
-    void* getLinkedEdgesLListHeadOf(void* ref) const;
+    edge_id_t getLinkedEdgesLListHeadOf(node_id_t node) const;
 
 }; // PropertyGraphLinkedRelationshipsSet
 } // lingodb::runtime::graph
