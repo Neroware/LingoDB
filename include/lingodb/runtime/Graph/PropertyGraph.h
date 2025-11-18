@@ -2,7 +2,6 @@
 #define LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
 
 #include "lingodb/runtime/helpers.h"
-#include "lingodb/runtime/Graph/PropertyTable.h"
 #include "lingodb/runtime/Buffer.h"
 
 namespace lingodb::runtime {
@@ -10,6 +9,9 @@ namespace lingodb::runtime {
 typedef int64_t node_id_t;
 typedef int64_t edge_id_t;
 typedef uint64_t relation_type_id_t;
+typedef int64_t property_id_t;
+typedef uint64_t property_type_id_t;
+typedef uint64_t property_key_t;
 
 // Implementation of a native property graph following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
 // See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
@@ -33,6 +35,14 @@ class PropertyGraph {
         edge_id_t secondNextRelation;
         uint64_t property;
     }; // RelationshipEntry
+    struct PropertyEntry {
+        property_id_t id;
+        property_id_t nextProp;
+        property_id_t prevProp;
+        property_key_t key;
+        property_type_id_t type;
+        uint64_t value;
+    }; // PropertyEntry
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
     runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
     runtime::LegacyFixedSizedBuffer<PropertyEntry> properties;
@@ -43,6 +53,7 @@ class PropertyGraph {
 
     node_id_t nodeBufferSize = 0;
     edge_id_t relBufferSize = 0;
+    property_id_t propBufferSize = 0;
 
     node_id_t getNodeId(NodeEntry* node) const;
     edge_id_t getRelationshipId(RelationshipEntry* rel) const;
@@ -69,12 +80,16 @@ class PropertyGraph {
 
     Buffer getNodeBuffer() const { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
     Buffer getEdgeBuffer() const { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+    Buffer getPropBuffer() const { return Buffer{(size_t) propBufferSize * sizeof(PropertyEntry), (uint8_t*) properties.ptr }; }
     BufferIterator* createNodeIterator();
     BufferIterator* createEdgeIterator();
+    BufferIterator* createPropIterator();
     void* getNodeBufferPtr() const { return (void*) nodes.ptr; }
     void* getEdgeBufferPtr() const { return (void*) relationships.ptr; }
+    void* getPropBufferPtr() const { return (void*) properties.ptr; }
     size_t getNodeBufferLen() const { return nodeBufferSize; }
     size_t getEdgeBufferLen() const { return relBufferSize; }
+    size_t getPropBufferLen() const { return propBufferSize; }
     edge_id_t getLinkedEdgesLListHeadOf(node_id_t node) const;
 
 }; // PropertyGraphLinkedRelationshipsSet

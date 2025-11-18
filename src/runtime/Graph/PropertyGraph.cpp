@@ -125,12 +125,12 @@ void PropertyGraph::destroy(PropertyGraph* graph) {
     delete graph;
 }
 
-class PropertyGraphNodeSetIterator : public BufferIterator {
+class PropertyGraphNodeTableIterator : public BufferIterator {
     const PropertyGraph& graph;
     bool valid;
 
     public:
-    PropertyGraphNodeSetIterator(const PropertyGraph& graph) 
+    PropertyGraphNodeTableIterator(const PropertyGraph& graph) 
         : graph(graph), valid(true) {}
     bool isValid() override { return valid; }
     void next() override { valid = false; }
@@ -140,13 +140,13 @@ class PropertyGraphNodeSetIterator : public BufferIterator {
         auto buffer = getCurrentBuffer();
         forEachChunk(buffer, contextPtr);
     }
-}; // PropertyGraphNodeSetIterator
-class PropertyGraphEdgeSetIterator : public BufferIterator {
+}; // PropertyGraphNodeTableIterator
+class PropertyGraphEdgeTableIterator : public BufferIterator {
     const PropertyGraph& graph;
     bool valid;
 
     public:
-    PropertyGraphEdgeSetIterator(const PropertyGraph& graph) 
+    PropertyGraphEdgeTableIterator(const PropertyGraph& graph) 
         : graph(graph), valid(true) {}
     bool isValid() override { return valid; }
     void next() override { valid = false; }
@@ -156,12 +156,31 @@ class PropertyGraphEdgeSetIterator : public BufferIterator {
         auto buffer = getCurrentBuffer();
         forEachChunk(buffer, contextPtr);
     }
-}; // PropertyGraphEdgeSetIterator
+}; // PropertyGraphEdgeTableIterator
+class PropertyGraphPropertyTableIterator : public BufferIterator {
+    const PropertyGraph& graph;
+    bool valid;
+
+    public:
+    PropertyGraphPropertyTableIterator(const PropertyGraph& graph) 
+        : graph(graph), valid(true) {}
+    bool isValid() override { return valid; }
+    void next() override { valid = false; }
+    Buffer getCurrentBuffer() override { return graph.getPropBuffer(); }
+    void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
+        // TODO No parallelism in PropertyGraph iterators yet...
+        auto buffer = getCurrentBuffer();
+        forEachChunk(buffer, contextPtr);
+    }
+}; // PropertyGraphPropertyTableIterator
 BufferIterator* PropertyGraph::createNodeIterator() {
-    return new PropertyGraphNodeSetIterator(*this);
+    return new PropertyGraphNodeTableIterator(*this);
 }
 BufferIterator* PropertyGraph::createEdgeIterator() {
-    return new PropertyGraphEdgeSetIterator(*this);
+    return new PropertyGraphEdgeTableIterator(*this);
+}
+BufferIterator* PropertyGraph::createPropIterator() {
+    return new PropertyGraphPropertyTableIterator(*this);
 }
 edge_id_t PropertyGraph::getLinkedEdgesLListHeadOf(node_id_t id) const {
     return getNode(id)->nextRelationship;
