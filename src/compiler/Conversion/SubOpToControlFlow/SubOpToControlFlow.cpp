@@ -32,7 +32,6 @@
 #include "lingodb/compiler/runtime/SimpleState.h"
 #include "lingodb/compiler/runtime/ThreadLocal.h"
 #include "lingodb/compiler/runtime/Tracing.h"
-#include "lingodb/compiler/runtime/Graph/GraphSets.h"
 #include "lingodb/compiler/runtime/Graph/PropertyGraph.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -944,16 +943,14 @@ static mlir::TupleType getHashMultiMapValueType(subop::HashMultiMapType t, mlir:
 static mlir::TupleType getNodeEntryType(graph::NodeRefType t, mlir::TypeConverter& converter) {
    auto i1Type = IntegerType::get(t.getContext(), 1);
    auto i64Type = IntegerType::get(t.getContext(), 64);
-   auto ptrType = util::RefType::get(t.getContext(), IntegerType::get(t.getContext(), 8));
    auto propertyTupleType = EntryStorageHelper(nullptr, t.getPropertyMembers(), false, &converter).getStorageType();
-   return mlir::TupleType::get(t.getContext(), {i1Type, ptrType, i64Type, i64Type, propertyTupleType});
+   return mlir::TupleType::get(t.getContext(), {i1Type, i64Type, i64Type, propertyTupleType});
 }
 static mlir::TupleType getEdgeEntryType(graph::EdgeRefType t, mlir::TypeConverter& converter) {
    auto i1Type = IntegerType::get(t.getContext(), 1);
    auto i64Type = IntegerType::get(t.getContext(), 64);
-   auto ptrType = util::RefType::get(t.getContext(), IntegerType::get(t.getContext(), 8));
    auto propertyTupleType = EntryStorageHelper(nullptr, t.getPropertyMembers(), false, &converter).getStorageType();
-   return mlir::TupleType::get(t.getContext(), {i1Type, ptrType, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, propertyTupleType});
+   return mlir::TupleType::get(t.getContext(), {i1Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type, propertyTupleType});
 }
 
 static TupleType convertTuple(TupleType tupleType, TypeConverter& typeConverter) {
@@ -4177,10 +4174,23 @@ class ScanGraphLowering : public SubOpConversionPattern<graph::ScanGraphOp> {
       if (!mlir::isa<graph::GraphType>(scanGraphOp.getGraph().getType())) return failure();
       ColumnMapping mapping;
       auto loc = scanGraphOp->getLoc();
-      auto vxPtr = rt::PropertyGraph::getNodeSet(rewriter, loc)({adaptor.getGraph()})[0];
-      auto exPtr = rt::PropertyGraph::getEdgeSet(rewriter, loc)({adaptor.getGraph()})[0];
-      mapping.define(scanGraphOp.getNodeSet(), vxPtr);
-      mapping.define(scanGraphOp.getEdgeSet(), exPtr);
+      auto ptrType = util::RefType::get(rewriter.getContext(), rewriter.getI8Type());
+      auto vxType = typeConverter->convertType(scanGraphOp.getNodeSet().getColumn().type);
+      auto vx = rewriter.create<util::AllocaOp>(loc, vxType, mlir::Value());
+      auto vxPtr = rt::PropertyGraph::getNodeBufferPtr(rewriter, loc)({adaptor.getGraph()})[0];
+      auto vxRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), vx, 0);
+      rewriter.create<util::StoreOp>(loc, vxPtr, vxRef, mlir::Value());
+      auto vxGRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), vx, 1);
+      rewriter.create<util::StoreOp>(loc, adaptor.getGraph(), vxGRef, mlir::Value());
+      auto exType = typeConverter->convertType(scanGraphOp.getEdgeSet().getColumn().type);
+      auto ex = rewriter.create<util::AllocaOp>(loc, exType, mlir::Value());
+      auto exPtr = rt::PropertyGraph::getEdgeBufferPtr(rewriter, loc)({adaptor.getGraph()})[0];
+      auto exRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), ex, 0);
+      rewriter.create<util::StoreOp>(loc, exPtr, exRef, mlir::Value());
+      auto exGRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), ex, 1);
+      rewriter.create<util::StoreOp>(loc, adaptor.getGraph(), exGRef, mlir::Value());
+      mapping.define(scanGraphOp.getNodeSet(), vx);
+      mapping.define(scanGraphOp.getEdgeSet(), ex);
       rewriter.replaceTupleStream(scanGraphOp, mapping);
       return success();
    }
@@ -4206,7 +4216,9 @@ class ScanNodeSetLowering : public SubOpConversionPattern<graph::ScanNodeSetOp> 
       if (nodeSetItStrategy.str() != "all") assert(false && "Compiler does not support the given iteration strategy!");
       ColumnMapping mapping;
       auto loc = scanRefsOp->getLoc();
-      auto it = rt::GraphNodeSet::nodeSetCreateIterator(rewriter, loc)({adaptor.getNodeSet()})[0];
+      auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), util::RefType::get(rewriter.getContext(), rewriter.getI8Type())), adaptor.getNodeSet(), 1);
+      auto graph = rewriter.create<util::LoadOp>(loc, graphRef);
+      auto it = rt::PropertyGraph::createNodeIterator(rewriter, loc)({graph})[0];
       auto nodeEntryType = getNodeEntryType(nodeRefType, *typeConverter);
       implementBufferIteration(scanRefsOp->hasAttr("parallel"), it, nodeEntryType, loc, rewriter, *typeConverter, scanRefsOp.getOperation(), [&](SubOpRewriter& rewriter, mlir::Value ptr) {
          auto inUseRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), rewriter.getI1Type()), ptr, 0);
@@ -4214,7 +4226,16 @@ class ScanNodeSetLowering : public SubOpConversionPattern<graph::ScanNodeSetOp> 
          auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, inUse);
          ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
          rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
-            mapping.define(scanRefsOp.getRef(), ptr);
+            auto ptrType = util::RefType::get(rewriter.getI8Type());
+            auto type = typeConverter->convertType(scanRefsOp.getRef().getColumn().type);
+            auto ref = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+            auto nodeRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), util::RefType::get(rewriter.getContext(), nodeEntryType)), ref, 0);
+            rewriter.create<util::StoreOp>(loc, ptr, nodeRef, mlir::Value());
+            auto vxGRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), rewriter.getMapped(scanRefsOp.getNodeSet()), 1);
+            auto graphPtr = rewriter.create<util::LoadOp>(loc, vxGRef);
+            auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), ref, 1);
+            rewriter.create<util::StoreOp>(loc, graphPtr, graphRef, mlir::Value());
+            mapping.define(scanRefsOp.getRef(), ref);
             rewriter.replaceTupleStream(scanRefsOp, mapping);
          });
       });
@@ -4249,7 +4270,9 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
    LogicalResult genIterationStrategyAll(graph::ScanEdgeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::EdgeRefType edgeRefType) const {
       ColumnMapping mapping;
       auto loc = scanRefsOp->getLoc();
-      auto it = rt::GraphEdgeSet::edgeSetCreateIterator(rewriter, loc)({adaptor.getEdgeSet()})[0];
+      auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), util::RefType::get(rewriter.getContext(), rewriter.getI8Type())), adaptor.getEdgeSet(), 1);
+      auto graph = rewriter.create<util::LoadOp>(loc, graphRef);
+      auto it = rt::PropertyGraph::createEdgeIterator(rewriter, loc)({graph})[0];
       auto edgeEntryType = getEdgeEntryType(edgeRefType, *typeConverter);
       implementBufferIteration(scanRefsOp->hasAttr("parallel"), it, edgeEntryType, loc, rewriter, *typeConverter, scanRefsOp.getOperation(), [&](SubOpRewriter& rewriter, mlir::Value ptr) {
          auto inUseRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), rewriter.getI1Type()), ptr, 0);
@@ -4257,7 +4280,16 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, inUse);
          ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
          rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
-            mapping.define(scanRefsOp.getRef(), ptr);
+            auto ptrType = util::RefType::get(rewriter.getI8Type());
+            auto type = typeConverter->convertType(scanRefsOp.getRef().getColumn().type);
+            auto ref = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+            auto edgeRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), util::RefType::get(rewriter.getContext(), edgeEntryType)), ref, 0);
+            rewriter.create<util::StoreOp>(loc, ptr, edgeRef, mlir::Value());
+            auto exGRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), rewriter.getMapped(scanRefsOp.getEdgeSet()), 0);
+            auto graphPtr = rewriter.create<util::LoadOp>(loc, exGRef);
+            auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(rewriter.getContext(), ptrType), ref, 1);
+            rewriter.create<util::StoreOp>(loc, graphPtr, graphRef, mlir::Value());
+            mapping.define(scanRefsOp.getRef(), ref);
             rewriter.replaceTupleStream(scanRefsOp, mapping);
          });
       });
@@ -4274,6 +4306,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       }
 
       auto edgeEntryType = getEdgeEntryType(refType, *typeConverter);
+      auto nodeIdPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 0);
+      auto llheadPtr = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, rewriter.getI8Type()), nodeIdPtr);
 
       // TODO Move Implementation into helper function 'implementLinkedListIteration(...)' 
       // and 'implementLinkedListIterationRuntime(...)'
@@ -4287,7 +4321,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       });
 
       auto* funcBody = new Block;
-      mlir::Value lheadPtr = funcBody->addArgument(ptrType, loc);
+      mlir::Value llistPtr = funcBody->addArgument(ptrType, loc);
       mlir::Value ctxtPtr = funcBody->addArgument(ptrType, loc);
       funcOp.getBody().push_back(funcBody);
       auto ptr = rewriter.storeStepRequirements();
@@ -4295,15 +4329,14 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          auto guard = rewriter.loadStepRequirements(ctxtPtr, typeConverter);
          
          // LList traversal init
-         auto lheadRef = rewriter.create<util::GenericMemrefCastOp>(loc, ref.getType(), lheadPtr);
-         auto edgeSetRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), lheadRef, 0);
-         auto nodeIdPtrRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI64Type())), lheadRef, 1);
-         auto edgeSet = rewriter.create<util::LoadOp>(loc, edgeSetRef);
-         auto nodeIdRef = rewriter.create<util::LoadOp>(loc, nodeIdPtrRef);
+         auto nodeIdRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(rewriter.getI64Type()), llistPtr);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
-         auto edgeId = rt::GraphNodeLinkedEdgesSet::edgeSetGetFirstEdge(rewriter, loc)({edgeSet, nodeId})[0];
-         auto edgeBufPtr = rt::GraphNodeLinkedEdgesSet::edgeSetGetEdgesBuf(rewriter, loc)({edgeSet})[0];
-         auto edgeBufLenI64 = rt::GraphNodeLinkedEdgesSet::edgeSetGetEdgesBufLen(rewriter, loc)({edgeSet})[0];
+         auto edgeSetRef = rewriter.getMapped(scanRefsOp.getEdgeSet());
+         auto graphPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), edgeSetRef, 1);
+         auto graphRef = rewriter.create<util::LoadOp>(loc, graphPtr);
+         auto edgeId = rt::PropertyGraph::getLinkedEdgesLListHeadOf(rewriter, loc)({graphRef, nodeId})[0];
+         auto edgeBufPtr = rt::PropertyGraph::getEdgeBufferPtr(rewriter, loc)({graphRef})[0];
+         auto edgeBufLenI64 = rt::PropertyGraph::getEdgeBufferLen(rewriter, loc)({graphRef})[0];
          auto edgeBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
          auto edgeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, edgeEntryType), edgeBufPtr, edgeBufLen);
          auto isValid = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
@@ -4317,7 +4350,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
             auto startEdgeIdx = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeId);
             auto startEdgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, startEdgeIdx);
-            auto startEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), startEdgeRef, 2);
+            auto startEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), startEdgeRef, 1);
             auto startEdgeId = rewriter.create<util::LoadOp>(loc, startEdgeIdRef);
 
             // Begin LList traversal
@@ -4330,7 +4363,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
                auto inUseRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI1Type()), edgeRef, 0);
                auto inUse = b.create<util::LoadOp>(loc, inUseRef);
-               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 4);
+               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
                auto secondNodeId = b.create<util::LoadOp>(loc, secondNodeIdRef);
                auto eq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, secondNodeId);
                return b.create<arith::AndIOp>(loc, inUse, eq);
@@ -4338,18 +4371,18 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             auto next = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
                auto elemIndex = b.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
+               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
                auto firstId = b.create<util::LoadOp>(loc, firstIdRef);
                auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstId);
                auto firstEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), firstEq);
-               auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 7);
+               auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 6);
                auto firstNextRel = b.create<util::LoadOp>(loc, firstNextRelRef);
                auto first = b.create<arith::AndIOp>(loc, firstNextRel, firstEqI64);
-               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 4);
+               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
                auto secondNodeId = b.create<util::LoadOp>(loc, secondNodeIdRef);
                auto secondEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, secondNodeId);
                auto secondEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), secondEq);
-               auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 9);
+               auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 8);
                auto secondNextRel = b.create<util::LoadOp>(loc, secondNextRelRef);
                auto second = b.create<arith::AndIOp>(loc, secondNextRel, secondEqI64);
                return b.create<arith::OrIOp>(loc, rewriter.getI64Type(), first, second);
@@ -4374,7 +4407,13 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                   // Payload here!!!
                   auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                   auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-                  mapping.define(scanRefsOp.getRef(), edgeRef);
+                  auto type = typeConverter->convertType(refType);
+                  auto allocaRef = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+                  auto allocaEdgePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(edgeEntryType)), allocaRef, 0);
+                  rewriter.create<util::StoreOp>(loc, edgeRef, allocaEdgePtr, mlir::Value());
+                  auto allocaGraphPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(rewriter.getI8Type())), allocaRef, 1);
+                  rewriter.create<util::StoreOp>(loc, graphRef, allocaGraphPtr, mlir::Value());
+                  mapping.define(scanRefsOp.getRef(), allocaRef);
                   rewriter.replaceTupleStream(scanRefsOp, mapping);
                });
                auto nextElem = next(rewriter, loc, elem);
@@ -4388,9 +4427,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          rewriter.create<mlir::func::ReturnOp>(loc);
       });
 
-      auto llistPtr = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, rewriter.getI8Type()), ref);
       llvm::SmallVector<mlir::Value, 2> funcArgs;
-      funcArgs.push_back(llistPtr);
+      funcArgs.push_back(llheadPtr);
       funcArgs.push_back(ptr);
       rewriter.create<func::CallOp>(loc, funcOp, funcArgs);
       return success();
@@ -4406,6 +4444,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       }
 
       auto edgeEntryType = getEdgeEntryType(refType, *typeConverter);
+      auto nodeIdPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 0);
+      auto llheadPtr = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, rewriter.getI8Type()), nodeIdPtr);
 
       // TODO Move Implementation into helper function 'implementLinkedListIteration(...)' 
       // and 'implementLinkedListIterationRuntime(...)'
@@ -4419,7 +4459,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       });
 
       auto* funcBody = new Block;
-      mlir::Value lheadPtr = funcBody->addArgument(ptrType, loc);
+      mlir::Value llistPtr = funcBody->addArgument(ptrType, loc);
       mlir::Value ctxtPtr = funcBody->addArgument(ptrType, loc);
       funcOp.getBody().push_back(funcBody);
       auto ptr = rewriter.storeStepRequirements();
@@ -4427,15 +4467,14 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          auto guard = rewriter.loadStepRequirements(ctxtPtr, typeConverter);
          
          // LList traversal init
-         auto lheadRef = rewriter.create<util::GenericMemrefCastOp>(loc, ref.getType(), lheadPtr);
-         auto edgeSetRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), lheadRef, 0);
-         auto nodeIdPtrRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI64Type())), lheadRef, 1);
-         auto edgeSet = rewriter.create<util::LoadOp>(loc, edgeSetRef);
-         auto nodeIdRef = rewriter.create<util::LoadOp>(loc, nodeIdPtrRef);
+         auto nodeIdRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(rewriter.getI64Type()), llistPtr);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
-         auto edgeId = rt::GraphNodeLinkedEdgesSet::edgeSetGetFirstEdge(rewriter, loc)({edgeSet, nodeId})[0];
-         auto edgeBufPtr = rt::GraphNodeLinkedEdgesSet::edgeSetGetEdgesBuf(rewriter, loc)({edgeSet})[0];
-         auto edgeBufLenI64 = rt::GraphNodeLinkedEdgesSet::edgeSetGetEdgesBufLen(rewriter, loc)({edgeSet})[0];
+         auto edgeSetRef = rewriter.getMapped(scanRefsOp.getEdgeSet());
+         auto graphPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), edgeSetRef, 1);
+         auto graphRef = rewriter.create<util::LoadOp>(loc, graphPtr);
+         auto edgeId = rt::PropertyGraph::getLinkedEdgesLListHeadOf(rewriter, loc)({graphRef, nodeId})[0];
+         auto edgeBufPtr = rt::PropertyGraph::getEdgeBufferPtr(rewriter, loc)({graphRef})[0];
+         auto edgeBufLenI64 = rt::PropertyGraph::getEdgeBufferLen(rewriter, loc)({graphRef})[0];
          auto edgeBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
          auto edgeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, edgeEntryType), edgeBufPtr, edgeBufLen);
          auto isValid = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
@@ -4449,7 +4488,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
             auto startEdgeIdx = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeId);
             auto startEdgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, startEdgeIdx);
-            auto startEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), startEdgeRef, 2);
+            auto startEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), startEdgeRef, 1);
             auto startEdgeId = rewriter.create<util::LoadOp>(loc, startEdgeIdRef);
 
             // Begin LList traversal
@@ -4462,7 +4501,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
                auto inUseRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI1Type()), edgeRef, 0);
                auto inUse = b.create<util::LoadOp>(loc, inUseRef);
-               auto firstNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
+               auto firstNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
                auto firstNodeId = b.create<util::LoadOp>(loc, firstNodeIdRef);
                auto eq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstNodeId);
                return b.create<arith::AndIOp>(loc, inUse, eq);
@@ -4470,18 +4509,18 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             auto next = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
                auto elemIndex = b.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
+               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
                auto firstId = b.create<util::LoadOp>(loc, firstIdRef);
                auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstId);
                auto firstEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), firstEq);
-               auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 7);
+               auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 6);
                auto firstNextRel = b.create<util::LoadOp>(loc, firstNextRelRef);
                auto first = b.create<arith::AndIOp>(loc, firstNextRel, firstEqI64);
-               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 4);
+               auto secondNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 3);
                auto secondNodeId = b.create<util::LoadOp>(loc, secondNodeIdRef);
                auto secondEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, secondNodeId);
                auto secondEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), secondEq);
-               auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 9);
+               auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 8);
                auto secondNextRel = b.create<util::LoadOp>(loc, secondNextRelRef);
                auto second = b.create<arith::AndIOp>(loc, secondNextRel, secondEqI64);
                return b.create<arith::OrIOp>(loc, rewriter.getI64Type(), first, second);
@@ -4506,7 +4545,13 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                   // Payload here!!!
                   auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                   auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-                  mapping.define(scanRefsOp.getRef(), edgeRef);
+                  auto type = typeConverter->convertType(refType);
+                  auto allocaRef = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+                  auto allocaEdgePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(edgeEntryType)), allocaRef, 0);
+                  rewriter.create<util::StoreOp>(loc, edgeRef, allocaEdgePtr, mlir::Value());
+                  auto allocaGraphPtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(rewriter.getI8Type())), allocaRef, 1);
+                  rewriter.create<util::StoreOp>(loc, graphRef, allocaGraphPtr, mlir::Value());
+                  mapping.define(scanRefsOp.getRef(), allocaRef);
                   rewriter.replaceTupleStream(scanRefsOp, mapping);
                });
                auto nextElem = next(rewriter, loc, elem);
@@ -4520,9 +4565,8 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
          rewriter.create<mlir::func::ReturnOp>(loc);
       });
 
-      auto llistPtr = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, rewriter.getI8Type()), ref);
       llvm::SmallVector<mlir::Value, 2> funcArgs;
-      funcArgs.push_back(llistPtr);
+      funcArgs.push_back(llheadPtr);
       funcArgs.push_back(ptr);
       rewriter.create<func::CallOp>(loc, funcOp, funcArgs);
       return success();
@@ -4544,41 +4588,39 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto ctxt = gatherOp.getContext();
       auto loc = gatherOp.getLoc();
       auto ref = mapping.resolve(gatherOp, gatherOp.getRef());
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto nodeRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, nodeEntryType)), ref, 0);
+      auto nodePtr = rewriter.create<util::LoadOp>(loc, nodeRef);
       auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 1);
       auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
       llvm::SmallVector<Attribute, 16> columns;
       llvm::SmallVector<Value, 16> columnValues;
       processMembers(gatherOp, nodeMembers, memberManager, [&](size_t i, const Member& member){
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
-         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), nodePtr, 1);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          columns.append({columnDef});
          columnValues.append({nodeId});
       });
-      processMembers(gatherOp, incomingMembers, memberManager, [&](size_t i, const Member& member){
-         auto columnDef = gatherOp.getMapping().getColumnDef(member);
-         auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
-         columns.append({columnDef});
-         columnValues.append({edgeSet});
-      });
       auto processEdgeSetMembers = [&](size_t i, const Member& member){
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
-         auto edgeSet = rt::PropertyGraph::getNodeLinkedEdgeSet(rewriter, loc)({graphPtr})[0];
-         auto nodeId = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
-         auto allocaRef = rewriter.create<util::AllocaOp>(loc, util::RefType::get(ctxt, TupleType::get(ctxt, {edgeSet.getType(), nodeId.getType()})), mlir::Value());
-         auto edgeSetRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, edgeSet.getType()), allocaRef, 0);
-         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, nodeId.getType()), allocaRef, 1);
-         rewriter.create<util::StoreOp>(loc, edgeSet, edgeSetRef, mlir::Value());
-         rewriter.create<util::StoreOp>(loc, nodeId, nodeIdRef, mlir::Value());
+         auto type = typeConverter->convertType(memberManager.getType(member));
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), nodePtr, 1);
+         auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
+         auto allocaRef = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+         auto nodeRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), allocaRef, 0);
+         auto nodeRef0 = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), nodeRef);
+         rewriter.create<util::StoreOp>(loc, nodeId, nodeRef0, mlir::Value());
+         auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), allocaRef, 1);
+         rewriter.create<util::StoreOp>(loc, graphPtr, graphRef, mlir::Value());
          columns.append({columnDef});
          columnValues.append({allocaRef});
       };
       processMembers(gatherOp, outgoingMembers, memberManager, processEdgeSetMembers);
       processMembers(gatherOp, incomingMembers, memberManager, processEdgeSetMembers);
       EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
-      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), nodePtr, nodeEntryType.size() - 1);
       auto props = storageHelper.getValueMap(propRef, rewriter, loc);
       processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
          auto value = props.get(member);
@@ -4619,51 +4661,63 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto ctxt = gatherOp.getContext();
       auto loc = gatherOp.getLoc();
       auto ref = mapping.resolve(gatherOp, gatherOp.getRef());
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
+      auto edgeRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, edgeEntryType)), ref, 0);
+      auto edgePtr = rewriter.create<util::LoadOp>(loc, edgeRef);
       auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), ref, 1);
       auto graphPtr = rewriter.create<util::LoadOp>(loc, graphRef);
       llvm::SmallVector<Attribute, 16> columns;
       llvm::SmallVector<Value, 16> columnValues;
       processMembers(gatherOp, edgeMembers, memberManager, [&](size_t i, const Member& member){
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
-         auto edgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 2);
-         auto nodeId = rewriter.create<util::LoadOp>(loc, edgeIdRef);
+         auto edgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgePtr, 1);
+         auto edgeId = rewriter.create<util::LoadOp>(loc, edgeIdRef);
          columns.append({columnDef});
-         columnValues.append({nodeId});
+         columnValues.append({edgeId});
       });
       processMembers(gatherOp, toMembers, memberManager, [&](size_t i, const Member& member){
          auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(memberManager.getType(member)), *typeConverter);
-         auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
-         auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
-         auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+         auto nodeBufPtr = rt::PropertyGraph::getNodeBufferPtr(rewriter, loc)({graphPtr})[0];
+         auto nodeBufLenI64 = rt::PropertyGraph::getNodeBufferLen(rewriter, loc)({graphPtr})[0];
          auto nodeBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
          auto nodeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, nodeEntryType), nodeBufPtr, nodeBufLen);
-         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 4);
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgePtr, 3);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          auto nodeIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeId);
          auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeIndex);
+         auto type = typeConverter->convertType(memberManager.getType(member));
+         auto allocaRef = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+         auto nodePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, nodeEntryType)), allocaRef, 0);
+         rewriter.create<util::StoreOp>(loc, nodeRef, nodePtr, mlir::Value());
+         auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), allocaRef, 1);
+         rewriter.create<util::StoreOp>(loc, graphPtr, graphRef, mlir::Value());
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
-         columnValues.append({nodeRef});
+         columnValues.append({allocaRef});
       });
       processMembers(gatherOp, fromMembers, memberManager, [&](size_t i, const Member& member){
          auto nodeEntryType = getNodeEntryType(mlir::cast<graph::NodeRefType>(memberManager.getType(member)), *typeConverter);
-         auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
-         auto nodeBufPtr = rt::GraphNodeSet::nodeSetGetNodesBuf(rewriter, loc)({nodeSet})[0];
-         auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+         auto nodeBufPtr = rt::PropertyGraph::getNodeBufferPtr(rewriter, loc)({graphPtr})[0];
+         auto nodeBufLenI64 = rt::PropertyGraph::getNodeBufferLen(rewriter, loc)({graphPtr})[0];
          auto nodeBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
          auto nodeBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, nodeEntryType), nodeBufPtr, nodeBufLen);
-         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 3);
+         auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgePtr, 2);
          auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
          auto nodeIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeId);
          auto nodeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, nodeEntryType), nodeBuf, nodeIndex);
+         auto type = typeConverter->convertType(memberManager.getType(member));
+         auto allocaRef = rewriter.create<util::AllocaOp>(loc, type, mlir::Value());
+         auto nodePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, nodeEntryType)), allocaRef, 0);
+         rewriter.create<util::StoreOp>(loc, nodeRef, nodePtr, mlir::Value());
+         auto graphRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, util::RefType::get(ctxt, rewriter.getI8Type())), allocaRef, 1);
+         rewriter.create<util::StoreOp>(loc, graphPtr, graphRef, mlir::Value());
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
-         columnValues.append({nodeRef});
+         columnValues.append({allocaRef});
       });
       EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
-      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), edgePtr, edgeEntryType.size() - 1);
       auto props = storageHelper.getValueMap(propRef, rewriter, loc);
       processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
          auto value = props.get(member);
@@ -4701,11 +4755,13 @@ class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto loc = scatterOp.getLoc();
       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
       if (!checkAtomicStore(scatterOp)) return failure();
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto nodePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(nodeEntryType)), ref, 0);
+      auto nodeRef = rewriter.create<util::LoadOp>(loc, nodePtr); 
       auto propertyMembers = referenceType.getPropertyMembers();
       EntryStorageHelper storageHelper(scatterOp, propertyMembers, false, typeConverter);
-      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), nodeRef, nodeEntryType.size() - 1);
       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
       for (auto x : scatterOp.getMapping().getMapping()) {
          values.set(x.first, mapping.resolve(scatterOp, x.second));
@@ -4728,11 +4784,13 @@ class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto loc = scatterOp.getLoc();
       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
       if (!checkAtomicStore(scatterOp)) return failure();
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
+      auto edgePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(edgeEntryType)), ref, 0);
+      auto edgeRef = rewriter.create<util::LoadOp>(loc, edgePtr); 
       auto writtenMembers = scatterOp.getWrittenMembers();
       EntryStorageHelper storageHelper(scatterOp, referenceType.getPropertyMembers(), false, typeConverter);
-      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), edgeRef, edgeEntryType.size() - 1);
       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
       for (auto x : scatterOp.getMapping().getMapping()) {
          values.set(x.first, mapping.resolve(scatterOp, x.second));
@@ -4752,8 +4810,7 @@ class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
       auto loc = nodeCountOp.getLoc();
       auto ctxt = nodeCountOp.getContext();
       auto graphPtr = adaptor.getGraph();
-      auto nodeSet = rt::PropertyGraph::getNodeSet(rewriter, loc)({graphPtr})[0];
-      auto nodeBufLenI64 = rt::GraphNodeSet::nodeSetGetNodesBufLen(rewriter, loc)({nodeSet})[0];
+      auto nodeBufLenI64 = rt::PropertyGraph::getNodeBufferLen(rewriter, loc)({graphPtr})[0];
       auto nodeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
       llvm::SmallVector<mlir::Attribute, 2> columns;
       llvm::SmallVector<mlir::Value, 2> columnValues;
@@ -4772,8 +4829,7 @@ class RelationshipCountOpLowering : public SubOpTupleStreamConsumerConversionPat
       auto loc = relCountOp.getLoc();
       auto ctxt = relCountOp.getContext();
       auto graphPtr = adaptor.getGraph();
-      auto edgeSet = rt::PropertyGraph::getEdgeSet(rewriter, loc)({graphPtr})[0];
-      auto edgeBufLenI64 = rt::GraphEdgeSet::edgeSetGetEdgesBufLen(rewriter, loc)({edgeSet})[0];
+      auto edgeBufLenI64 = rt::PropertyGraph::getEdgeBufferLen(rewriter, loc)({graphPtr})[0];
       auto edgeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
       llvm::SmallVector<mlir::Attribute, 2> columns;
       llvm::SmallVector<mlir::Value, 2> columnValues;
@@ -5053,21 +5109,20 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
       return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
    });
    typeConverter.addConversion([&](graph::EdgeSetType t) -> Type {
-      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      auto ptrType = util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      return util::RefType::get(t.getContext(), TupleType::get(t.getContext(), {ptrType, ptrType}));
    });
    typeConverter.addConversion([&](graph::NodeSetType t) -> Type {
-      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      auto ptrType = util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      return util::RefType::get(t.getContext(), TupleType::get(t.getContext(), {ptrType, ptrType}));
    });
    typeConverter.addConversion([&](graph::NodeRefType t) -> Type {
-      llvm::SmallVector<mlir::Type, 8> propertyTypes;
-      t.getPropertyMembers().walk([&](mlir::TypeAttr typeAttr) {
-         propertyTypes.append({typeConverter.convertType(typeAttr.getValue())});
-      });
-      return util::RefType::get(t.getContext(), mlir::TupleType::get(t.getContext(), propertyTypes));
-      
+      auto ptrType = util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      return util::RefType::get(t.getContext(), TupleType::get(t.getContext(), {util::RefType::get(t.getContext(), getNodeEntryType(t, typeConverter)), ptrType}));
    });
    typeConverter.addConversion([&](graph::EdgeRefType t) -> Type {
-      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      auto ptrType = util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      return util::RefType::get(t.getContext(), TupleType::get(t.getContext(), {util::RefType::get(t.getContext(), getEdgeEntryType(t, typeConverter)), ptrType}));
    });
 
    //basic tuple stream manipulation

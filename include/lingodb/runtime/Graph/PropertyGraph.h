@@ -1,11 +1,14 @@
 #ifndef LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
 #define LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
 
+#include "lingodb/runtime/helpers.h"
 #include "lingodb/runtime/Graph/PropertyTable.h"
-#include "lingodb/runtime/Graph/GraphSets.h"
+#include "lingodb/runtime/Buffer.h"
 
 namespace lingodb::runtime {
 
+typedef int64_t node_id_t;
+typedef int64_t edge_id_t;
 typedef uint64_t relation_type_id_t;
 
 // Implementation of a native property graph following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
@@ -14,16 +17,12 @@ class PropertyGraph {
     private:
     struct NodeEntry {
         bool inUse;
-        // TODO Change conversion of !graph.node_ref to tuple<!util.ref<i8>, !util.ref<i8>> to eliminate this field!
-        PropertyGraph* graph;
         node_id_t id;
         edge_id_t nextRelationship;
         int64_t property; // TODO for now we only support a single node property of type i64
     }; // NodeEntry
     struct RelationshipEntry {
         bool inUse;
-        // TODO Change conversion of !graph.edge_ref to tuple<!util.ref<i8>, !util.ref<i8>> to eliminate this field!
-        PropertyGraph* graph;
         edge_id_t id;
         node_id_t firstNode;
         node_id_t secondNode;
@@ -34,40 +33,13 @@ class PropertyGraph {
         edge_id_t secondNextRelation;
         int64_t property; // TODO for now we only support a single edge property of type i64
     }; // RelationshipEntry
-    struct PropertyGraphNodeSet : GraphNodeSet {
-        PropertyGraph* graph;
-        PropertyGraphNodeSet(PropertyGraph* graph) : graph(graph) {}
-        PropertyGraph* getGraph() override { return graph; }
-        BufferIterator* createIterator() override;
-        void* getNodesBuf() override { return getGraph()->nodes.ptr; }
-        size_t getNodesBufLen() override { return getGraph()->nodeBufferSize; }
-    }; // PropertyGraphNodeSet
-    struct PropertyGraphRelationshipSet : GraphEdgeSet {
-        PropertyGraph* graph;
-        PropertyGraphRelationshipSet(PropertyGraph* graph) : graph(graph) {}
-        PropertyGraph* getGraph() override { return graph; }
-        BufferIterator* createIterator() override;
-        void* getEdgesBuf() override { return getGraph()->relationships.ptr; }
-        size_t getEdgesBufLen() override { return getGraph()->relBufferSize; }
-    }; // PropertyGraphRelationshipSet
-    struct PropertyGraphNodeLinkedRelationshipsSet : GraphNodeLinkedEdgesSet {
-        PropertyGraph* graph;
-        PropertyGraphNodeLinkedRelationshipsSet(PropertyGraph* graph) : graph(graph) {}
-        PropertyGraph* getGraph() override { return graph; }
-        edge_id_t getFirstEdge(node_id_t node) override { return getGraph()->getNode(node)->nextRelationship; }
-        void* getEdgesBuf() override { return getGraph()->relationships.ptr; }
-        size_t getEdgesBufLen() override { return getGraph()->relBufferSize; }
-    }; // PropertyGraphNodeLinkedRelationshipsSet
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
     runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
     runtime::LegacyFixedSizedBuffer<PropertyEntry> properties;
     std::vector<NodeEntry*> unusedNodeEntries;
     std::vector<RelationshipEntry*> unusedRelEntries;
-    PropertyGraphNodeSet nodeSet;
-    PropertyGraphRelationshipSet edgeSet;
-    PropertyGraphNodeLinkedRelationshipsSet connectionsSet;
     PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
-        : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity), nodeSet(this), edgeSet(this), connectionsSet(this) {}
+        : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity) {}
 
     node_id_t nodeBufferSize = 0;
     edge_id_t relBufferSize = 0;
@@ -93,12 +65,17 @@ class PropertyGraph {
     static PropertyGraph* createTestGraph();
     static void destroy(PropertyGraph*);
 
-    GraphNodeSet* getNodeSet() { return &nodeSet; }
-    GraphEdgeSet* getEdgeSet() { return &edgeSet; };
-    GraphNodeLinkedEdgesSet* getNodeLinkedEdgeSet() { return &connectionsSet; }
+    // Methods aiding in grapth iterations
 
-    Buffer getNodeBuffer() { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
-    Buffer getRelationshipBuffer() { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+    Buffer getNodeBuffer() const { return Buffer{(size_t) nodeBufferSize * sizeof(NodeEntry), (uint8_t*) nodes.ptr }; }
+    Buffer getEdgeBuffer() const { return Buffer{(size_t) relBufferSize * sizeof(RelationshipEntry), (uint8_t*) relationships.ptr }; }
+    BufferIterator* createNodeIterator();
+    BufferIterator* createEdgeIterator();
+    void* getNodeBufferPtr() const { return (void*) nodes.ptr; }
+    void* getEdgeBufferPtr() const { return (void*) relationships.ptr; }
+    size_t getNodeBufferLen() const { return nodeBufferSize; }
+    size_t getEdgeBufferLen() const { return relBufferSize; }
+    edge_id_t getLinkedEdgesLListHeadOf(node_id_t node) const;
 
 }; // PropertyGraphLinkedRelationshipsSet
 } // lingodb::runtime::graph
