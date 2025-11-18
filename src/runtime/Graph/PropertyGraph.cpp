@@ -27,7 +27,6 @@ node_id_t PropertyGraph::addNode() {
     assert(!node->inUse && "should not happen");
     node_id_t nodeId = getNodeId(node);
     node->inUse = true;
-    node->graph = this;
     node->id = nodeId;
     node->nextRelationship = -1;
     node->property = 0;
@@ -45,7 +44,6 @@ edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to, relation_
     }
     edge_id_t relId = getRelationshipId(rel);
     rel->inUse = true;
-    rel->graph = this;
     rel->id = relId;
     rel->firstNode = from;
     rel->secondNode = to;
@@ -128,15 +126,15 @@ void PropertyGraph::destroy(PropertyGraph* graph) {
 }
 
 class PropertyGraphNodeSetIterator : public BufferIterator {
-    GraphNodeSet& nodeSet;
+    const PropertyGraph& graph;
     bool valid;
 
     public:
-    PropertyGraphNodeSetIterator(GraphNodeSet& nodeSet) 
-        : nodeSet(nodeSet), valid(true) {}
+    PropertyGraphNodeSetIterator(const PropertyGraph& graph) 
+        : graph(graph), valid(true) {}
     bool isValid() override { return valid; }
     void next() override { valid = false; }
-    Buffer getCurrentBuffer() override { return nodeSet.getGraph()->getNodeBuffer(); }
+    Buffer getCurrentBuffer() override { return graph.getNodeBuffer(); }
     void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
         // TODO No parallelism in PropertyGraph iterators yet...
         auto buffer = getCurrentBuffer();
@@ -144,25 +142,25 @@ class PropertyGraphNodeSetIterator : public BufferIterator {
     }
 }; // PropertyGraphNodeSetIterator
 class PropertyGraphEdgeSetIterator : public BufferIterator {
-    GraphEdgeSet& edgeSet;
+    const PropertyGraph& graph;
     bool valid;
 
     public:
-    PropertyGraphEdgeSetIterator(GraphEdgeSet& edgeSet) 
-        : edgeSet(edgeSet), valid(true) {}
+    PropertyGraphEdgeSetIterator(const PropertyGraph& graph) 
+        : graph(graph), valid(true) {}
     bool isValid() override { return valid; }
     void next() override { valid = false; }
-    Buffer getCurrentBuffer() override { return edgeSet.getGraph()->getEdgeBuffer(); }
+    Buffer getCurrentBuffer() override { return graph.getEdgeBuffer(); }
     void iterateEfficient(bool parallel, void (*forEachChunk)(Buffer, void*), void* contextPtr) override {
         // TODO No parallelism in PropertyGraph iterators yet...
         auto buffer = getCurrentBuffer();
         forEachChunk(buffer, contextPtr);
     }
 }; // PropertyGraphEdgeSetIterator
-BufferIterator* PropertyGraph::PropertyGraphNodeSet::createIterator() {
+BufferIterator* PropertyGraph::createNodeIterator() {
     return new PropertyGraphNodeSetIterator(*this);
 }
-BufferIterator* PropertyGraph::PropertyGraphRelationshipSet::createIterator() {
+BufferIterator* PropertyGraph::createEdgeIterator() {
     return new PropertyGraphEdgeSetIterator(*this);
 }
 edge_id_t PropertyGraph::getLinkedEdgesLListHeadOf(node_id_t id) const {
