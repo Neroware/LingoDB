@@ -19,7 +19,7 @@ class PropertyGraph {
         bool inUse;
         node_id_t id;
         edge_id_t nextRelationship;
-        int64_t property; // TODO for now we only support a single node property of type i64
+        uint64_t property;
     }; // NodeEntry
     struct RelationshipEntry {
         bool inUse;
@@ -31,7 +31,7 @@ class PropertyGraph {
         edge_id_t firstNextRelation;
         edge_id_t secondPrevRelation;
         edge_id_t secondNextRelation;
-        int64_t property; // TODO for now we only support a single edge property of type i64
+        uint64_t property;
     }; // RelationshipEntry
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
     runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
@@ -56,10 +56,10 @@ class PropertyGraph {
     node_id_t removeNode(node_id_t node);
     edge_id_t removeRelationship(edge_id_t rel);
 
-    void setNodeProperty(node_id_t id, int64_t value);
-    int64_t getNodeProperty(node_id_t id) const;
-    void setRelationshipProperty(edge_id_t id, int64_t value);
-    int64_t getRelationshipProperty(edge_id_t id) const;
+    void setNodeProperty(node_id_t id, uint64_t value);
+    uint64_t getNodeProperty(node_id_t id) const;
+    void setRelationshipProperty(edge_id_t id, uint64_t value);
+    uint64_t getRelationshipProperty(edge_id_t id) const;
 
     static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity);
     static PropertyGraph* createTestGraph();

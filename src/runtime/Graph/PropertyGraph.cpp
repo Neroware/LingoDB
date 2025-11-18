@@ -81,16 +81,16 @@ node_id_t PropertyGraph::removeNode(node_id_t node) {
 edge_id_t PropertyGraph::removeRelationship(edge_id_t rel) {
     assert(false && "not impelemented"); // TODO implement
 }
-void PropertyGraph::setNodeProperty(node_id_t id, int64_t value) {
+void PropertyGraph::setNodeProperty(node_id_t id, uint64_t value) {
     getNode(id)->property = value;
 }
-int64_t PropertyGraph::getNodeProperty(node_id_t id) const {
+uint64_t PropertyGraph::getNodeProperty(node_id_t id) const {
     return getNode(id)->property;
 }
-void PropertyGraph::setRelationshipProperty(edge_id_t id, int64_t value) {
+void PropertyGraph::setRelationshipProperty(edge_id_t id, uint64_t value) {
     getRelationship(id)->property = value;
 }
-int64_t PropertyGraph::getRelationshipProperty(edge_id_t id) const {
+uint64_t PropertyGraph::getRelationshipProperty(edge_id_t id) const {
     return getRelationship(id)->property;
 }
 PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity) {
