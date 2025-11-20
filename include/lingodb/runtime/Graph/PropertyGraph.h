@@ -90,7 +90,15 @@ class PropertyGraph {
     size_t getNodeBufferLen() const { return nodeBufferSize; }
     size_t getEdgeBufferLen() const { return relBufferSize; }
     size_t getPropBufferLen() const { return propBufferSize; }
-    edge_id_t getLinkedEdgesLListHeadOf(node_id_t node) const;
+    void* getLinkedEgdesLListHead(void* nodeRef) const;
+
+    // Resolves a graph reference to its graph instance
+
+    static PropertyGraph* getGraphByNodeRef(void* ref);
+    static PropertyGraph* getGraphByEdgeRef(void* ref);
+
+    // Keeps track of all Property Graph states
+    static std::unordered_map<void*, PropertyGraph*> graphs;
 
 }; // PropertyGraphLinkedRelationshipsSet
 } // lingodb::runtime::graph

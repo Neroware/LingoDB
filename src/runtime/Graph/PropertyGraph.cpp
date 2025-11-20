@@ -98,6 +98,8 @@ PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialR
 }
 PropertyGraph* PropertyGraph::createTestGraph() {
     auto g = new PropertyGraph(16, 256, 256);
+    graphs.insert({(void*) g->nodes.ptr, g});
+    graphs.insert({(void*) g->relationships.ptr, g});
     for (int i = 0; i < 6; i++) {
         g->addNode();
     }
@@ -182,8 +184,18 @@ BufferIterator* PropertyGraph::createEdgeIterator() {
 BufferIterator* PropertyGraph::createPropIterator() {
     return new PropertyGraphPropertyTableIterator(*this);
 }
-edge_id_t PropertyGraph::getLinkedEdgesLListHeadOf(node_id_t id) const {
-    return getNode(id)->nextRelationship;
+void* PropertyGraph::getLinkedEgdesLListHead(void* ref) const {
+    NodeEntry* node = (NodeEntry*) ref;
+    return (void*) getRelationship(node->nextRelationship);
 }
+PropertyGraph* PropertyGraph::getGraphByNodeRef(void* ref) {
+    NodeEntry* node = (NodeEntry*) ref;
+    return PropertyGraph::graphs[(void*) (node - node->id)];
+}
+PropertyGraph* PropertyGraph::getGraphByEdgeRef(void* ref) {
+    RelationshipEntry* rel = (RelationshipEntry*) ref;
+    return PropertyGraph::graphs[(void*) (rel - rel->id)];
+}
+std::unordered_map<void*, PropertyGraph*> PropertyGraph::graphs;
 
 } // lingodb::runtime::graph
