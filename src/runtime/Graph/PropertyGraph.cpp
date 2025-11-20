@@ -184,9 +184,6 @@ BufferIterator* PropertyGraph::createEdgeIterator() {
 BufferIterator* PropertyGraph::createPropIterator() {
     return new PropertyGraphPropertyTableIterator(*this);
 }
-edge_id_t PropertyGraph::getLinkedEdgesLListHeadOf(node_id_t id) const {
-    return getNode(id)->nextRelationship;
-}
 void* PropertyGraph::getLinkedEgdesLListHead(void* ref) const {
     NodeEntry* node = (NodeEntry*) ref;
     return (void*) getRelationship(node->nextRelationship);

@@ -4698,13 +4698,11 @@ class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto loc = scatterOp.getLoc();
       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
       if (!checkAtomicStore(scatterOp)) return failure();
-      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
-      auto nodePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(nodeEntryType)), ref, 0);
-      auto nodeRef = rewriter.create<util::LoadOp>(loc, nodePtr); 
       auto propertyMembers = referenceType.getPropertyMembers();
       EntryStorageHelper storageHelper(scatterOp, propertyMembers, false, typeConverter);
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), nodeRef, nodeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
       for (auto x : scatterOp.getMapping().getMapping()) {
          values.set(x.first, mapping.resolve(scatterOp, x.second));
@@ -4727,13 +4725,11 @@ class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPatter
       auto loc = scatterOp.getLoc();
       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
       if (!checkAtomicStore(scatterOp)) return failure();
-      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
-      auto edgePtr = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(util::RefType::get(edgeEntryType)), ref, 0);
-      auto edgeRef = rewriter.create<util::LoadOp>(loc, edgePtr); 
       auto writtenMembers = scatterOp.getWrittenMembers();
       EntryStorageHelper storageHelper(scatterOp, referenceType.getPropertyMembers(), false, typeConverter);
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
-      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), edgeRef, edgeEntryType.size() - 1);
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
       for (auto x : scatterOp.getMapping().getMapping()) {
          values.set(x.first, mapping.resolve(scatterOp, x.second));
