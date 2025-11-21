@@ -1,5 +1,3 @@
-// ./build/mlir-db-opt test.snippets/graph/graph_scans10.mlir
-
 module {
     func.func @main() {
     	%subop_result = subop.execution_group (){

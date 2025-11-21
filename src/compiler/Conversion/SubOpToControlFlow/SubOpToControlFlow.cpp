@@ -4761,10 +4761,10 @@ class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
    }
 };
 
-class RelationshipCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::RelationshipCountOp> {
+class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp> {
    public:
-   using SubOpTupleStreamConsumerConversionPattern<graph::RelationshipCountOp>::SubOpTupleStreamConsumerConversionPattern;
-   LogicalResult matchAndRewrite(graph::RelationshipCountOp relCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+   using SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::EdgeCountOp relCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
       auto loc = relCountOp.getLoc();
       auto ctxt = relCountOp.getContext();
       auto graphPtr = adaptor.getGraph();
@@ -4819,9 +4819,9 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<EdgeRefGatherOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<NodeRefScatterOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeRefScatterOpLowering>(typeConverter, ctxt);
-   //PropertyGraph
    rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
-   rewriter.insertPattern<RelationshipCountOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
+   //PropertyGraph
 
    //Hashmap
    rewriter.insertPattern<CreateHashMapLowering>(typeConverter, ctxt);
