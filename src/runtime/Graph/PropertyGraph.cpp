@@ -50,29 +50,32 @@ edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to, relation_
     rel->type = type;
     rel->firstNextRelation = rel->firstPrevRelation = rel->secondNextRelation = rel->secondPrevRelation = -1;
     if (fromNode->nextRelationship >= 0) {
-        RelationshipEntry* fromNodeRelChain = getRelationship(fromNode->nextRelationship);
-        if (fromNodeRelChain->firstNode == from) {
-            fromNodeRelChain->firstPrevRelation = relId;
-            rel->firstNextRelation = fromNode->nextRelationship;   
+        RelationshipEntry* head = getRelationship(fromNode->nextRelationship);
+        if (head->firstNode == from) {
+            head->firstPrevRelation = relId;
+            rel->firstNextRelation = head->id;   
         }
         else {
-            fromNodeRelChain->secondPrevRelation = relId;
-            rel->firstNextRelation = fromNode->nextRelationship;
+            head->secondPrevRelation = relId;
+            rel->firstNextRelation = head->id;
         }
     }
     fromNode->nextRelationship = relId;
-    if (toNode->nextRelationship >= 0) {
-        RelationshipEntry* toNodeRelChain = getRelationship(toNode->nextRelationship);
-        if (toNodeRelChain->firstNode == to) {
-            toNodeRelChain->firstPrevRelation = relId;
-            rel->secondNextRelation = toNode->nextRelationship;   
+    if (from != to) {
+        if (toNode->nextRelationship >= 0) {
+            RelationshipEntry* head = getRelationship(toNode->nextRelationship);
+            if (head->firstNode == to) {
+                head->firstPrevRelation = relId;
+                rel->secondNextRelation = head->id;   
+            }
+            else {
+                head->secondPrevRelation = relId;
+                rel->secondNextRelation = head->id;
+            }
         }
-        else {
-            toNodeRelChain->secondPrevRelation = relId;
-            rel->secondNextRelation = toNode->nextRelationship;
-        }
+        toNode->nextRelationship = relId;
     }
-    toNode->nextRelationship = relId;
+
     return relId;
 }
 node_id_t PropertyGraph::removeNode(node_id_t node) {
