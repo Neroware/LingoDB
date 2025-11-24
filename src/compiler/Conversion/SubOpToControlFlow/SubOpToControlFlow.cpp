@@ -4344,9 +4344,9 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             auto next = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
                auto elemIndex = b.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
-               auto firstId = b.create<util::LoadOp>(loc, firstIdRef);
-               auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstId);
+               auto firstNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
+               auto firstNodeId = b.create<util::LoadOp>(loc, firstNodeIdRef);
+               auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstNodeId);
                auto firstEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), firstEq);
                auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 6);
                auto firstNextRel = b.create<util::LoadOp>(loc, firstNextRelRef);
@@ -4357,7 +4357,10 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto secondEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), secondEq);
                auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 8);
                auto secondNextRel = b.create<util::LoadOp>(loc, secondNextRelRef);
-               auto second = b.create<arith::AndIOp>(loc, secondNextRel, secondEqI64);
+               auto bothNeq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::ne, firstNodeId, secondNodeId);
+               auto bothNeqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), bothNeq);
+               auto bothNeqRes = b.create<arith::AndIOp>(loc, secondNextRel, bothNeqI64);
+               auto second = b.create<arith::AndIOp>(loc, bothNeqRes, secondEqI64);
                return b.create<arith::OrIOp>(loc, rewriter.getI64Type(), first, second);
             };
 
@@ -4484,9 +4487,9 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             auto next = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
                auto elemIndex = b.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
                auto edgeRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-               auto firstIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
-               auto firstId = b.create<util::LoadOp>(loc, firstIdRef);
-               auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstId);
+               auto firstNodeIdRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 2);
+               auto firstNodeId = b.create<util::LoadOp>(loc, firstNodeIdRef);
+               auto firstEq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, nodeId, firstNodeId);
                auto firstEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), firstEq);
                auto firstNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 6);
                auto firstNextRel = b.create<util::LoadOp>(loc, firstNextRelRef);
@@ -4497,7 +4500,10 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
                auto secondEqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), secondEq);
                auto secondNextRelRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), edgeRef, 8);
                auto secondNextRel = b.create<util::LoadOp>(loc, secondNextRelRef);
-               auto second = b.create<arith::AndIOp>(loc, secondNextRel, secondEqI64);
+               auto bothNeq = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::ne, firstNodeId, secondNodeId);
+               auto bothNeqI64 = b.create<arith::ExtSIOp>(loc, rewriter.getI64Type(), bothNeq);
+               auto bothNeqRes = b.create<arith::AndIOp>(loc, secondNextRel, bothNeqI64);
+               auto second = b.create<arith::AndIOp>(loc, bothNeqRes, secondEqI64);
                return b.create<arith::OrIOp>(loc, rewriter.getI64Type(), first, second);
             };
 
