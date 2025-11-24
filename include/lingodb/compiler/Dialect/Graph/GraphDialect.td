@@ -97,6 +97,11 @@ def PropertyRef : Graph_Type<"PropertyRef", "property_ref", [State]> {
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
 }
+def TypedPropertyRef : Graph_Type<"TypedPropertyRef", "typed_property_ref", [State]> {
+    let summary = "typed property ref";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
 
 //===----------------------------------------------------------------------===//
 // Attributes

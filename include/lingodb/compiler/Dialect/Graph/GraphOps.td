@@ -88,18 +88,6 @@ def EdgeCountOp : Graph_Op<"edge_count", [Pure,SubOperator,ReferenceProducer,Dec
 // general graph processing IR, which is minimally complete with lowerings for CreateOp, ScanOp, 
 // GatherOp and ScatterOp.
 
-// def RelationshipTypeOp : Graph_Op<"relationship_type", [Pure,SubOperator,ReferenceProducer]> {
-//     let summary = "gather relationship type";
-
-//     let arguments = (ins TupleStream : $stream, ColumnRefAttr: $edgeRef, ColumnDefAttr:$valueRef );
-//     let results = (outs TupleStream : $res);
-//     let assemblyFormat = [{  $stream custom<CustRef>($edgeRef) `is` `a` custom<CustDef>($valueRef) attr-dict }];
-//     let extraClassDeclaration = [{
-//         dialect::tuples::ColumnDefAttr getProducedReference(){ return getValueRef(); }
-//         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
-//     }];
-// }
-
 def ScanPropertySetOp : Graph_Op<"subop.scan_property_set", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
     let summary = "scan state (sequentially)";
     let arguments = (ins AnyType : $prop_set, ColumnDefAttr: $ref);
@@ -110,6 +98,33 @@ def ScanPropertySetOp : Graph_Op<"subop.scan_property_set", [Pure,SubOperator,Re
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
+
+//===----------------------------------------------------------------------===//
+// Relationship filtering by type
+//===----------------------------------------------------------------------===//
+
+def CreateTypeOp : Graph_Op<"create_type", [Pure,SubOperator,ReferenceProducer]> {
+    let summary = "create graph type";
+    let arguments = (ins TupleStream : $stream, ColumnDefAttr:$typeRef, StrAttr:$type);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream $type `=` `>`  custom<CustDef>($typeRef) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getTypeRef(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
+def FilterRelationshipTypeOp : Graph_Op<"filter_relationship_type", [Pure,SubOperator]> {
+    let summary = "filter relationship type";
+    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $edgeRef, ColumnRefAttr: $typeRef);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream custom<CustRef>($edgeRef) `of` `type` custom<CustRef>($typeRef) attr-dict }];
+    let extraClassDeclaration = [{
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
+// def FilterRelationshipTypeOp 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Graph IR <-> SubOp IR

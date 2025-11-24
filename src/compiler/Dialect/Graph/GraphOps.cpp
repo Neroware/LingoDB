@@ -15,7 +15,15 @@ namespace {
 tuples::ColumnManager& getColumnManager(::mlir::OpAsmParser& parser) {
    return parser.getBuilder().getContext()->getLoadedDialect<tuples::TupleStreamDialect>()->getColumnManager();
 }
-
+ParseResult parseCustRef(OpAsmParser& parser, tuples::ColumnRefAttr& attr) {
+   ::mlir::SymbolRefAttr parsedSymbolRefAttr;
+   if (parser.parseAttribute(parsedSymbolRefAttr, parser.getBuilder().getType<::mlir::NoneType>())) { return failure(); }
+   attr = getColumnManager(parser).createRef(parsedSymbolRefAttr);
+   return success();
+}
+void printCustRef(OpAsmPrinter& p, mlir::Operation* op, tuples::ColumnRefAttr attr) {
+   p << attr.getName();
+}
 ParseResult parseCustRefArr(OpAsmParser& parser, ArrayAttr& attr) {
    ArrayAttr parsedAttr;
    std::vector<Attribute> attributes;
@@ -154,21 +162,6 @@ mlir::Operation* graph::ScanPropertySetOp::cloneSubOp(mlir::OpBuilder& builder, 
    return newOp;
 }
 
-// void graph::RelationshipTypeOp::replaceColumns(subop::SubOpStateUsageTransformer& transformer, tuples::Column* oldColumn, tuples::Column* newColumn) {
-//    if (&getEdgeRef().getColumn() == oldColumn) {
-//       setEdgeRefAttr(transformer.getColumnManager().createRef(newColumn));
-//    }
-// }
-// void graph::RelationshipTypeOp::updateStateType(subop::SubOpStateUsageTransformer& transformer, mlir::Value state, mlir::Type newType) {
-//    assert(false && "should not happen");
-// }
-// mlir::Operation* graph::RelationshipTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
-//    auto newOp = builder.create<RelationshipTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), columnMapping.remap(getEdgeRef()), columnMapping.clone(getValueRef()));
-//    mapResults(mapping, this->getOperation(), newOp.getOperation());
-
-//    return newOp;
-// }
-
 void graph::NodeCountOp::updateStateType(subop::SubOpStateUsageTransformer& transformer, mlir::Value state, mlir::Type newType) {
    if (state == getGraph() && newType != state.getType()) {
       auto newRefType = transformer.getNewRefType(this->getOperation(), getRef().getColumn().type);
@@ -196,6 +189,20 @@ void graph::EdgeCountOp::replaceColumns(subop::SubOpStateUsageTransformer& trans
 }
 mlir::Operation* graph::EdgeCountOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
    auto newOp = builder.create<EdgeCountOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getGraph(), getRef());
+   mapResults(mapping, this->getOperation(), newOp.getOperation());
+
+   return newOp;
+}
+
+mlir::Operation* graph::CreateTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<CreateTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getTypeRef(), getType());
+   mapResults(mapping, this->getOperation(), newOp.getOperation());
+
+   return newOp;
+}
+
+mlir::Operation* graph::FilterRelationshipTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<FilterRelationshipTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getEdgeRef(), getTypeRef());
    mapResults(mapping, this->getOperation(), newOp.getOperation());
 
    return newOp;

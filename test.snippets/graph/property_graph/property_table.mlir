@@ -10,14 +10,14 @@ module {
             }
             %px = subop.gather %vx @nodes::@ref { property => @props::@set({type = !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]>}) }
             %props = subop.nested_map %px [@props::@set] (%arg0, %arg1){
-                %prop_stream = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]> @props::@i64refs({type = !graph.property_ref<[property_i64 : i64]>})
+                %prop_stream = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]> @props::@i64refs({type = !graph.typed_property_ref<[property_i64 : i64]>})
                 tuples.return %prop_stream : !tuples.tuplestream
             }
 
             %result_props = subop.gather %props @props::@i64refs {property_i64 => @props::@result({type = i64})}
 
             %0 = subop.create !subop.result_table<[int64p0 : i64]>
-            subop.materialize %result_nodes {@props::@result => int64p0}, %0 : !subop.result_table<[int64p0 : i64]>
+            subop.materialize %result_props {@props::@result => int64p0}, %0 : !subop.result_table<[int64p0 : i64]>
             %res = subop.create_from ["int64"] %0 : !subop.result_table<[int64p0 : i64]> -> !subop.local_table<[int64p0 : i64], ["int64"]>
             subop.execution_group_return %res : !subop.local_table<[int64p0 : i64], ["int64"]>
         
