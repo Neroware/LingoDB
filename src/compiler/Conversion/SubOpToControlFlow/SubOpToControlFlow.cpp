@@ -5065,6 +5065,9 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
    typeConverter.addConversion([&](graph::EdgeRefType t) -> Type {
       return util::RefType::get(t.getContext(), getEdgeEntryType(t, typeConverter));
    });
+   typeConverter.addConversion([&](graph::PropertySetType t) -> Type {
+      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+   });
 
    //basic tuple stream manipulation
 

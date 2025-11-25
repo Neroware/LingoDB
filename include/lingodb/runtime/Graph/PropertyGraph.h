@@ -21,7 +21,7 @@ class PropertyGraph {
         bool inUse;
         node_id_t id;
         edge_id_t nextRelationship;
-        uint64_t property;
+        property_id_t property;
     }; // NodeEntry
     struct RelationshipEntry {
         bool inUse;
@@ -33,9 +33,10 @@ class PropertyGraph {
         edge_id_t firstNextRelation;
         edge_id_t secondPrevRelation;
         edge_id_t secondNextRelation;
-        uint64_t property;
+        property_id_t property;
     }; // RelationshipEntry
     struct PropertyEntry {
+        bool inUse;
         property_id_t id;
         property_id_t nextProp;
         property_id_t prevProp;
@@ -48,6 +49,7 @@ class PropertyGraph {
     runtime::LegacyFixedSizedBuffer<PropertyEntry> properties;
     std::vector<NodeEntry*> unusedNodeEntries;
     std::vector<RelationshipEntry*> unusedRelEntries;
+    std::vector<PropertyEntry*> unusedPropEntries;
     PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
         : nodes(maxNodeCapacity), relationships(maxRelCapacity), properties(maxPropCapacity) {}
 
@@ -57,20 +59,23 @@ class PropertyGraph {
 
     node_id_t getNodeId(NodeEntry* node) const;
     edge_id_t getRelationshipId(RelationshipEntry* rel) const;
+    property_id_t getPropertyId(PropertyEntry* prop) const;
     NodeEntry* getNode(node_id_t node) const;
     RelationshipEntry* getRelationship(edge_id_t rel) const;
+    PropertyEntry* getProperty(property_id_t prop) const;
 
     public:
     node_id_t addNode();
-    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type = 0);
+    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type);
 
     node_id_t removeNode(node_id_t node);
     edge_id_t removeRelationship(edge_id_t rel);
 
-    void setNodeProperty(node_id_t id, uint64_t value);
-    uint64_t getNodeProperty(node_id_t id) const;
-    void setRelationshipProperty(edge_id_t id, uint64_t value);
-    uint64_t getRelationshipProperty(edge_id_t id) const;
+    property_id_t addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, uint64_t initial_value = 0);
+    property_id_t addRelationshipProperty(edge_id_t rel, property_key_t key, property_type_id_t type, uint64_t initial_value = 0);
+
+    property_id_t removeProperty(property_id_t prop);
+    void setProperty(property_id_t prop, uint64_t value);
 
     static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity);
     static PropertyGraph* createTestGraph();
@@ -100,7 +105,7 @@ class PropertyGraph {
     // Keeps track of all Property Graph states
     static std::unordered_map<void*, PropertyGraph*> graphs;
 
-}; // PropertyGraphLinkedRelationshipsSet
+}; // PropertyGraph
 } // lingodb::runtime::graph
 
 #endif // LINGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H

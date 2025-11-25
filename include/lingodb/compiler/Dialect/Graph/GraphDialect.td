@@ -102,6 +102,9 @@ def TypedPropertyRef : Graph_Type<"TypedPropertyRef", "typed_property_ref", [Sta
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
 }
+def TypeIdentifier : Graph_Type<"TypeIdentifier", "type_identifier", []> {
+    let summary = "type identifier";
+}
 
 //===----------------------------------------------------------------------===//
 // Attributes

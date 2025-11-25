@@ -42,6 +42,7 @@ edge_id_t PropertyGraph::addRelationship(node_id_t from, node_id_t to, relation_
         rel = unusedRelEntries.back();
         unusedRelEntries.pop_back();
     }
+    assert(!rel->inUse && "should not happen");
     edge_id_t relId = getRelationshipId(rel);
     rel->inUse = true;
     rel->id = relId;
@@ -84,18 +85,6 @@ node_id_t PropertyGraph::removeNode(node_id_t node) {
 edge_id_t PropertyGraph::removeRelationship(edge_id_t rel) {
     assert(false && "not impelemented"); // TODO implement
 }
-void PropertyGraph::setNodeProperty(node_id_t id, uint64_t value) {
-    getNode(id)->property = value;
-}
-uint64_t PropertyGraph::getNodeProperty(node_id_t id) const {
-    return getNode(id)->property;
-}
-void PropertyGraph::setRelationshipProperty(edge_id_t id, uint64_t value) {
-    getRelationship(id)->property = value;
-}
-uint64_t PropertyGraph::getRelationshipProperty(edge_id_t id) const {
-    return getRelationship(id)->property;
-}
 PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity) {
     return new PropertyGraph(initialNodeCapacity, initialRelationshipCapacity, initialPropertyCapacity);
 }
@@ -106,28 +95,93 @@ PropertyGraph* PropertyGraph::createTestGraph() {
     for (int i = 0; i < 6; i++) {
         g->addNode();
     }
-    g->addRelationship(0, 2);
-    g->addRelationship(1, 0);
-    g->addRelationship(1, 2);
-    g->addRelationship(1, 4);
-    g->addRelationship(2, 4);
-    g->addRelationship(2, 3);
-    g->setRelationshipProperty(0, 4242);
-    g->setRelationshipProperty(1, 111);
-    g->setRelationshipProperty(2, 222);
-    g->setRelationshipProperty(3, 333);
-    g->setRelationshipProperty(4, 444);
-    g->setRelationshipProperty(5, 555);
-    g->setNodeProperty(0, 42);
-    g->setNodeProperty(1, 11);
-    g->setNodeProperty(2, 22);
-    g->setNodeProperty(3, 33);
-    g->setNodeProperty(4, 44);
-    g->setNodeProperty(5, 55);
+    relation_type_id_t relType = 0;
+    g->addRelationship(0, 2, relType);
+    g->addRelationship(1, 0, relType);
+    g->addRelationship(1, 2, relType);
+    g->addRelationship(1, 4, relType);
+    g->addRelationship(2, 4, relType);
+    g->addRelationship(2, 3, relType);
+    g->getRelationship(0)->property = 4242;
+    g->getRelationship(1)->property = 111;
+    g->getRelationship(2)->property = 222;
+    g->getRelationship(3)->property = 333;
+    g->getRelationship(4)->property = 444;
+    g->getRelationship(5)->property = 555;
+    g->getNode(0)->property = 42;
+    g->getNode(1)->property = 11;
+    g->getNode(2)->property = 22;
+    g->getNode(3)->property = 33;
+    g->getNode(4)->property = 44;
+    g->getNode(5)->property = 55;
     return g;
 }
 void PropertyGraph::destroy(PropertyGraph* graph) {
     delete graph;
+}
+property_id_t PropertyGraph::getPropertyId(PropertyEntry* prop) const {
+    return prop - properties.ptr;
+}
+PropertyGraph::PropertyEntry* PropertyGraph::getProperty(property_id_t prop) const {
+    return properties.ptr + prop;
+}
+property_id_t PropertyGraph::addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, uint64_t initial_value) {
+    PropertyEntry* prop;
+    if (unusedPropEntries.empty()) {
+        prop = properties.getPtr(propBufferSize++);
+    }
+    else {
+        prop = unusedPropEntries.back();
+        unusedPropEntries.pop_back();
+    }
+    assert(!prop->inUse && "should not happen");
+    property_id_t propId = getPropertyId(prop);
+    prop->inUse = true;
+    prop->id = propId;
+    prop->key = key;
+    prop->nextProp = prop->prevProp = -1;
+    prop->type = type;
+    prop->value = initial_value;
+    NodeEntry* nodeEntry = getNode(node);
+    if (nodeEntry->property >= 0) {
+        PropertyEntry* head = getProperty(nodeEntry->property);
+        head->prevProp = propId;
+        prop->nextProp = head->id;
+    }
+    nodeEntry->property = propId;
+    return propId;
+}
+property_id_t PropertyGraph::addRelationshipProperty(edge_id_t rel, property_key_t key, property_type_id_t type, uint64_t initial_value) {
+    PropertyEntry* prop;
+    if (unusedPropEntries.empty()) {
+        prop = properties.getPtr(propBufferSize++);
+    }
+    else {
+        prop = unusedPropEntries.back();
+        unusedPropEntries.pop_back();
+    }
+    assert(!prop->inUse && "should not happen");
+    property_id_t propId = getPropertyId(prop);
+    prop->inUse = true;
+    prop->id = propId;
+    prop->key = key;
+    prop->nextProp = prop->prevProp = -1;
+    prop->type = type;
+    prop->value = initial_value;
+    RelationshipEntry* relEntry = getRelationship(rel);
+    if (relEntry->property >= 0) {
+        PropertyEntry* head = getProperty(relEntry->property);
+        head->prevProp = propId;
+        prop->nextProp = head->id;
+    }
+    relEntry->property = propId;
+    return propId;
+}
+property_id_t PropertyGraph::removeProperty(property_id_t prop) {
+    assert(false && "not impelemented"); // TODO implement
+}
+void PropertyGraph::setProperty(property_id_t prop, uint64_t value) {
+    properties.at(prop).value = value;
 }
 
 class PropertyGraphNodeTableIterator : public BufferIterator {
