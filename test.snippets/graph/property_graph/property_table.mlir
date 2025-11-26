@@ -8,9 +8,9 @@ module {
                 %node_stream = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes::@ref({type = !graph.node_ref<[node_id : i64],[incoming : !graph.edge_set<[incoming_it : !graph.graph_set_iterator<["incoming"]>]>],[outgoing : !graph.edge_set<[outgoing_it : !graph.graph_set_iterator<["outgoing"]>]>],[property : !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]>]>})
                 tuples.return %node_stream : !tuples.tuplestream
             }
-            %px = subop.gather %vx @nodes::@ref { property => @props::@set({type = !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]>}) }
+            %px = subop.gather %vx @nodes::@ref { property => @props::@set({type = !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]>}) }
             %props = subop.nested_map %px [@props::@set] (%arg0, %arg1){
-                %prop_stream = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["all"]>]> @props::@i64refs({type = !graph.typed_property_ref<[property_i64 : i64]>})
+                %prop_stream = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]> @props::@i64refs({type = !graph.typed_property_ref<[property_i64 : i64]>})
                 tuples.return %prop_stream : !tuples.tuplestream
             }
 

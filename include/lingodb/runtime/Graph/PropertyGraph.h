@@ -96,6 +96,8 @@ class PropertyGraph {
     size_t getEdgeBufferLen() const { return relBufferSize; }
     size_t getPropBufferLen() const { return propBufferSize; }
     void* getLinkedEgdesLListHead(void* nodeRef) const;
+    void* getNodePropertyLListHead(void* nodeRef) const;
+    void* getEdgePropertyLListHead(void* relRef) const;
 
     // Resolves a graph reference to its graph instance
 

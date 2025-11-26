@@ -4588,7 +4588,13 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
       auto props = storageHelper.getValueMap(propRef, rewriter, loc);
       processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
-         auto value = props.get(member);
+         mlir::Value value;
+         if (mlir::isa<graph::PropertySetType>(memberManager.getType(member))) {
+            value = ref;
+         }
+         else {
+            value = props.get(member);
+         }
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({value});
@@ -4669,7 +4675,13 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
       auto props = storageHelper.getValueMap(propRef, rewriter, loc);
       processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
-         auto value = props.get(member);
+         mlir::Value value;
+         if (mlir::isa<graph::PropertySetType>(memberManager.getType(member))) {
+            value = ref;
+         }
+         else {
+            value = props.get(member);
+         }
          auto columnDef = gatherOp.getMapping().getColumnDef(member);
          columns.append({columnDef});
          columnValues.append({value});

@@ -134,6 +134,16 @@ def FilterNodeTypeOp : Graph_Op<"filter_node_type", [Pure,SubOperator]> {
     }];
 }
 
+def FilterPropertyKeyOp : Graph_Op<"filter_property_key", [Pure,SubOperator]> {
+    let summary = "filter property key";
+    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $propRef, ColumnRefAttr: $typeRef);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream custom<CustRef>($propRef) `has` `key` custom<CustRef>($typeRef) attr-dict }];
+    let extraClassDeclaration = [{
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
 // def FilterRelationshipTypeOp 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -215,5 +215,12 @@ mlir::Operation* graph::FilterNodeTypeOp::cloneSubOp(mlir::OpBuilder& builder, m
    return newOp;
 }
 
+mlir::Operation* graph::FilterPropertyKeyOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<FilterPropertyKeyOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getPropRef(), getTypeRef());
+   mapResults(mapping, this->getOperation(), newOp.getOperation());
+
+   return newOp;
+}
+
 #define GET_OP_CLASSES
 #include "lingodb/compiler/Dialect/Graph/GraphOps.cpp.inc"

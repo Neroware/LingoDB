@@ -253,6 +253,14 @@ PropertyGraph* PropertyGraph::getGraphByEdgeRef(void* ref) {
     RelationshipEntry* rel = (RelationshipEntry*) ref;
     return PropertyGraph::graphs[(void*) (rel - rel->id)];
 }
+void* PropertyGraph::getNodePropertyLListHead(void* ref) const {
+    NodeEntry* node = (NodeEntry*) ref;
+    return (void*) getProperty(node->property);
+}
+void* PropertyGraph::getEdgePropertyLListHead(void* ref) const {
+    RelationshipEntry* rel = (RelationshipEntry*) ref;
+    return (void*) getProperty(rel->property);
+}
 std::unordered_map<void*, PropertyGraph*> PropertyGraph::graphs;
 
 } // lingodb::runtime::graph
