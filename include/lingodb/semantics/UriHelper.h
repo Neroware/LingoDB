@@ -1,0 +1,8 @@
+#ifndef LINGODB_SEMANTICS_URIHELPER_H
+#define LINGODB_SEMANTICS_URIHELPER_H
+
+struct UriHelper {
+    // ...
+};
+
+#endif //LINGODB_SEMANTICS_URIHELPER_H
