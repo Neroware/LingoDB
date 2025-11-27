@@ -16,6 +16,22 @@ struct GraphBase {
     uint8_t* relBufferPtr;
     size_t relBufferLen;
 }; // GraphBase
+struct NodeEntryBase {
+    bool inUse;
+    node_id_t id;
+    edge_id_t nextRelationship;
+}; // NodeEntryBase
+struct RelationshipEntryBase {
+    bool inUse;
+    edge_id_t id;
+    node_id_t firstNode;
+    node_id_t secondNode;
+    relation_type_id_t type;
+    edge_id_t firstPrevRelation;
+    edge_id_t firstNextRelation;
+    edge_id_t secondPrevRelation;
+    edge_id_t secondNextRelation;
+}; // RelationshipEntryBase
 
 // Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
 // See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
@@ -24,22 +40,10 @@ class Graph : public GraphBase {
     protected:
     node_id_t nodeCounter = 0;
     edge_id_t relCounter = 0;
-    struct NodeEntry {
-        bool inUse;
-        node_id_t id;
-        edge_id_t nextRelationship;
+    struct NodeEntry : public NodeEntryBase {
         T property;
     }; // NodeEntry
-    struct RelationshipEntry {
-        bool inUse;
-        edge_id_t id;
-        node_id_t firstNode;
-        node_id_t secondNode;
-        relation_type_id_t type;
-        edge_id_t firstPrevRelation;
-        edge_id_t firstNextRelation;
-        edge_id_t secondPrevRelation;
-        edge_id_t secondNextRelation;
+    struct RelationshipEntry : public RelationshipEntryBase {
         U property;
     }; // RelationshipEntry
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
@@ -89,7 +93,7 @@ class Graph : public GraphBase {
         NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
         if (unusedRelEntries.empty()) {
             rel = relationships.getPtr(relCounter++);
-            relBufferPtr += sizeof(RelationshipEntry);
+            relBufferLen += sizeof(RelationshipEntry);
         }
         else {
             rel = unusedRelEntries.back();

@@ -4266,6 +4266,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
    }
    LogicalResult genIterationStrategyIncoming(graph::ScanEdgeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
       ColumnMapping mapping;
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto loc = scanRefsOp->getLoc();
       auto ref = adaptor.getEdgeSet();
       auto ctxt = scanRefsOp.getContext();
@@ -4281,10 +4282,11 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       };
 
       auto edgeEntryType = getEdgeEntryType(refType, *typeConverter);
-      auto emptyStateMembers = StateMembersAttr::get(ctxt, {});
-      auto nodeRefType = graph::NodeRefType::get(ctxt, emptyStateMembers, emptyStateMembers, emptyStateMembers, emptyStateMembers);
-      auto nodeEntryType = typeConverter->convertType(nodeRefType);
-      auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryType, ref);
+      auto producedRefType = mlir::cast<graph::EdgeRefType>(scanRefsOp.getProducedReference().getColumn().type);
+      auto nodeRefType = memberManager.getType(producedRefType.getFromMembers().getMembers()[0]);
+      auto nodeEntryRefType = mlir::cast<util::RefType>(typeConverter->convertType(nodeRefType));
+      auto nodeEntryType = nodeEntryRefType.getElementType();
+      auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryRefType, ref);
       auto nextEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), node, 2);
       auto nextEdgeId = rewriter.create<util::LoadOp>(loc, nextEdgeIdRef);
       auto nextEdgeIdValid = isValid(rewriter, loc, nextEdgeId);
@@ -4319,7 +4321,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
 
             // LList traversal init
             auto nodePtr = rewriter.getMapped(scanRefsOp.getEdgeSet());
-            auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryType, nodePtr);
+            auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryRefType, nodePtr);
             auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), node, 1);
             auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
             auto edgeRefSize = rewriter.create<util::SizeOfOp>(loc, rewriter.getIndexType(), edgeEntryType);
@@ -4412,6 +4414,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
    }
    LogicalResult genIterationStrategyOutgoing(graph::ScanEdgeSetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
       ColumnMapping mapping;
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
       auto loc = scanRefsOp->getLoc();
       auto ref = adaptor.getEdgeSet();
       auto ctxt = scanRefsOp.getContext();
@@ -4427,10 +4430,11 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
       };
 
       auto edgeEntryType = getEdgeEntryType(refType, *typeConverter);
-      auto emptyStateMembers = StateMembersAttr::get(ctxt, {});
-      auto nodeRefType = graph::NodeRefType::get(ctxt, emptyStateMembers, emptyStateMembers, emptyStateMembers, emptyStateMembers);
-      auto nodeEntryType = typeConverter->convertType(nodeRefType);
-      auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryType, ref);
+      auto producedRefType = mlir::cast<graph::EdgeRefType>(scanRefsOp.getProducedReference().getColumn().type);
+      auto nodeRefType = memberManager.getType(producedRefType.getFromMembers().getMembers()[0]);
+      auto nodeEntryRefType = mlir::cast<util::RefType>(typeConverter->convertType(nodeRefType));
+      auto nodeEntryType = nodeEntryRefType.getElementType();
+      auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryRefType, ref);
       auto nextEdgeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), node, 2);
       auto nextEdgeId = rewriter.create<util::LoadOp>(loc, nextEdgeIdRef);
       auto nextEdgeIdValid = isValid(rewriter, loc, nextEdgeId);
@@ -4465,7 +4469,7 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
 
             // LList traversal init
             auto nodePtr = rewriter.getMapped(scanRefsOp.getEdgeSet());
-            auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryType, nodePtr);
+            auto node = rewriter.create<util::GenericMemrefCastOp>(loc, nodeEntryRefType, nodePtr);
             auto nodeIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), node, 1);
             auto nodeId = rewriter.create<util::LoadOp>(loc, nodeIdRef);
             auto edgeRefSize = rewriter.create<util::SizeOfOp>(loc, rewriter.getIndexType(), edgeEntryType);

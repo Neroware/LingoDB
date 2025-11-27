@@ -41,16 +41,16 @@ BufferIterator* GraphHelper::createEdgeIterator(GraphBase* graph) {
     return new GraphEdgeTableIterator(*graph);
 }
 void* GraphHelper::getLinkedEgdesLListHeadOf(GraphBase* graph, uint8_t* ref, size_t refSize) {
-    edge_id_t* rel = (edge_id_t*) (ref + sizeof(bool) + sizeof(node_id_t));
-    return graph->relBufferPtr + (*rel) * refSize;
+    auto node = (NodeEntryBase*) ref;
+    return graph->relBufferPtr + node->nextRelationship * refSize;
 }
 GraphBase* GraphHelper::getGraphByNodeRef(uint8_t* ref, size_t refSize) {
-    node_id_t* node = (node_id_t*) (ref + sizeof(bool));
-    return GraphHelper::graphs[(ref - (*node))];
+    auto node = (NodeEntryBase*) ref;
+    return GraphHelper::graphs[(ref - node->id * refSize)];
 }
 GraphBase* GraphHelper::getGraphByEdgeRef(uint8_t* ref, size_t refSize) {
-    edge_id_t* rel = (edge_id_t*) (ref + sizeof(bool));
-    return GraphHelper::graphs[(ref - (*rel))];
+    auto rel = (RelationshipEntryBase*) ref;
+    return GraphHelper::graphs[(ref - rel->id * refSize)];
 }
 TestGraph* TestGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) {
     return new TestGraph(initialNodeCapacity, initialRelationshipCapacity);
