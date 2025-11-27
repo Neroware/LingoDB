@@ -23,6 +23,7 @@ add_mlir_conversion_library(MLIRSubOpToControlFlow
         tracing-rt-defs
         lock-rt-defs
         graph-rt-defs
+        propgraph-rt-defs
         LINK_COMPONENTS
         Core
 
