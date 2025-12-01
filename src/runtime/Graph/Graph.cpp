@@ -1,4 +1,4 @@
-#include <lingodb/runtime/Graph/Graph.h>
+#include "lingodb/runtime/Graph/Graph.h"
 
 namespace lingodb::runtime {
 

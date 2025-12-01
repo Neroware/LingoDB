@@ -194,6 +194,22 @@ mlir::Operation* graph::EdgeCountOp::cloneSubOp(mlir::OpBuilder& builder, mlir::
    return newOp;
 }
 
+void graph::NodeDegreeOp::updateStateType(subop::SubOpStateUsageTransformer& transformer, mlir::Value state, mlir::Type newType) {
+   if (state == getGraph() && newType != state.getType()) {
+      auto newRefType = transformer.getNewRefType(this->getOperation(), getRef().getColumn().type);
+      setRefAttr(transformer.createReplacementColumn(getRefAttr(), newRefType));
+   }
+}
+void graph::NodeDegreeOp::replaceColumns(subop::SubOpStateUsageTransformer& transformer, tuples::Column* oldColumn, tuples::Column* newColumn) {
+   assert(false && "should not happen");
+}
+mlir::Operation* graph::NodeDegreeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<NodeDegreeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getGraph(), getRef(), getDir());
+   mapResults(mapping, this->getOperation(), newOp.getOperation());
+
+   return newOp;
+}
+
 mlir::Operation* graph::CreateTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
    auto newOp = builder.create<CreateTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getTypeRef(), getType());
    mapResults(mapping, this->getOperation(), newOp.getOperation());

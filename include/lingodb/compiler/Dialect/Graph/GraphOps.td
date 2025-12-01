@@ -79,6 +79,18 @@ def EdgeCountOp : Graph_Op<"edge_count", [Pure,SubOperator,ReferenceProducer,Dec
     }];
 }
 
+def NodeDegreeOp : Graph_Op<"node_degree", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
+    let summary = "node degree op";
+
+    let arguments = (ins TupleStream : $stream, Graph : $graph, ColumnDefAttr:$ref, StrAttr:$dir);
+    let results = (outs TupleStream : $res);
+    let assemblyFormat = [{  $stream `,` $graph `[` $dir `]` `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
+    let extraClassDeclaration = [{
+        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
+    }];
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Property Graph
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +119,7 @@ def CreateTypeOp : Graph_Op<"create_type", [Pure,SubOperator,ReferenceProducer]>
     let summary = "create graph type";
     let arguments = (ins TupleStream : $stream, ColumnDefAttr:$typeRef, StrAttr:$type);
     let results = (outs TupleStream : $res);
-    let assemblyFormat = [{  $stream $type `=` `>`  custom<CustDef>($typeRef) attr-dict }];
+    let assemblyFormat = [{  $stream $type `->`  custom<CustDef>($typeRef) attr-dict }];
     let extraClassDeclaration = [{
         dialect::tuples::ColumnDefAttr getProducedReference(){ return getTypeRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);

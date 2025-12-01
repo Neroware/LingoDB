@@ -4,7 +4,7 @@ module {
             
             %g = graph.subop.create_graph !graph.graph<[vx : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>],[ex : !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>]>
             %g_scan = graph.subop.scan_graph %g : !graph.graph<[vx : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>],[ex : !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>]> @nodes::@set({type = !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>}), @edges::@set({type = !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>})
-            %rtype = graph.create_type %g_scan "https://www.example.com/mytype" => @types::@mytype({type = !graph.type_identifier})
+            %rtype = graph.create_type %g_scan "https://www.example.com/mytype" -> @types::@mytype({type = !graph.type_identifier})
             %vx = subop.nested_map %rtype [@nodes::@set] (%arg0, %arg1){
                 %node_stream0 = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes::@ref({type = !graph.node_ref<[node_id : i64],[incoming : !graph.edge_set<[incoming_it : !graph.graph_set_iterator<["incoming"]>]>],[outgoing : !graph.edge_set<[outgoing_it : !graph.graph_set_iterator<["outgoing"]>]>],[property : i64]>})
                 %node_stream1 = graph.filter_node_type %node_stream0 @nodes::@ref of type @types::@mytype
