@@ -23,9 +23,6 @@ class PropertyGraphPropertyTableIterator : public BufferIterator {
 PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity) {
     return new PropertyGraph(initialNodeCapacity, initialRelationshipCapacity, initialPropertyCapacity);
 }
-PropertyGraph* PropertyGraph::createTestGraph() {
-    assert(false && "not implemented"); // TODO implement
-}
 void PropertyGraph::destroy(PropertyGraph* graph) {
     delete graph;
 }
@@ -92,6 +89,9 @@ property_id_t PropertyGraph::removeProperty(property_id_t prop) {
 }
 void PropertyGraph::setProperty(property_id_t prop, uint64_t value) {
     properties.at(prop).value = value;
+}
+BufferIterator* PropertyGraph::createPropIterator() {
+    return new PropertyGraphPropertyTableIterator(*this);
 }
 
 } // lingodb::runtime

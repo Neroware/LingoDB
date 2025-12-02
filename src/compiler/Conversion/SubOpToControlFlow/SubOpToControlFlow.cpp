@@ -4160,7 +4160,7 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       if (!graphType) return failure();
       auto loc = createOp->getLoc();
       EntryStorageHelper storageHelper(createOp, graphType.getMembers(), graphType.hasLock(), typeConverter);
-      mlir::Value g = rt::TestGraph::createTestGraph(rewriter, loc)({})[0];
+      mlir::Value g = rt::GraphHelper::createTestGraph(rewriter, loc)({})[0];
       rewriter.replaceOp(createOp, g);
       return mlir::success();
    }
@@ -4780,7 +4780,7 @@ class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
       auto loc = nodeCountOp.getLoc();
       auto ctxt = nodeCountOp.getContext();
       auto graphPtr = adaptor.getGraph();
-      auto nodeBufLenI64 = rt::TestGraph::getNodeCount(rewriter, loc)({graphPtr})[0];
+      auto nodeBufLenI64 = rt::LingoDBGraph::getNodeCount(rewriter, loc)({graphPtr})[0];
       auto nodeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
       llvm::SmallVector<mlir::Attribute, 2> columns;
       llvm::SmallVector<mlir::Value, 2> columnValues;
@@ -4799,7 +4799,7 @@ class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
       auto loc = relCountOp.getLoc();
       auto ctxt = relCountOp.getContext();
       auto graphPtr = adaptor.getGraph();
-      auto edgeBufLenI64 = rt::TestGraph::getEdgeCount(rewriter, loc)({graphPtr})[0];
+      auto edgeBufLenI64 = rt::LingoDBGraph::getEdgeCount(rewriter, loc)({graphPtr})[0];
       auto edgeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
       llvm::SmallVector<mlir::Attribute, 2> columns;
       llvm::SmallVector<mlir::Value, 2> columnValues;

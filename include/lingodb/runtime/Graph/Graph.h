@@ -53,9 +53,8 @@ class Graph : public GraphBase {
     Graph(size_t maxNodeCapacity, size_t maxRelCapacity) 
         : nodeCounter(0), relCounter(0), nodes(maxNodeCapacity), relationships(maxRelCapacity) {
             nodeBufferPtr = (uint8_t*) nodes.ptr;
-            nodeBufferLen = 0;
             relBufferPtr = (uint8_t*) relationships.ptr;
-            relBufferLen = 0;
+            nodeBufferLen = relBufferLen = 0;
     }
     
     node_id_t getNodeId(NodeEntry* node) const {
@@ -158,23 +157,27 @@ struct GraphHelper {
     static GraphBase* getGraphByNodeRef(uint8_t* ref, size_t refSize);
     static GraphBase* getGraphByEdgeRef(uint8_t* ref, size_t refSize);
 
+    static GraphBase* createTestGraph();
+
     // Keeps track of all graph states
     static std::unordered_map<uint8_t*, GraphBase*> graphs;
 }; // GraphHelper
-class TestGraph : public Graph<uint64_t, uint64_t> {
-private:
-    TestGraph(size_t maxNodeCapacity, size_t maxRelCapacity) 
+class LingoDBGraph : public Graph<int64_t, int64_t> {
+protected:
+    LingoDBGraph(size_t maxNodeCapacity, size_t maxRelCapacity) 
         : Graph(maxNodeCapacity, maxRelCapacity) {}
 public:
-    static TestGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
-    static TestGraph* createTestGraph();
     node_id_t addNode() { return Graph::addNode(0); }
-    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type) { 
-        return Graph::addRelationship(from, to, type, 0); 
-    }
+    edge_id_t addEdge(node_id_t from, node_id_t to) { return Graph::addRelationship(from, to, 0, 0); }
+    void setNodeValue(node_id_t node, int64_t value) const { Graph::getNode(node)->property = value; }
+    void setEdgeValue(edge_id_t edge, int64_t value) const { Graph::getRelationship(edge)->property = value; }
+    node_id_t removeNode(node_id_t node) { return Graph::removeNode(node); }
+    edge_id_t removeEdge(edge_id_t rel) { return Graph::removeRelationship(rel); }
     size_t getNodeCount() const { return nodeCounter; }
     size_t getEdgeCount() const { return relCounter; }
-}; // TestGraph
+    static LingoDBGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
+    static void destroy(LingoDBGraph* graph) { delete graph; }
+}; // LingoDBGraph
 
 } // lingodb::runtime::graph
 
