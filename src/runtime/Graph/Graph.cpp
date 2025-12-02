@@ -55,10 +55,8 @@ GraphBase* GraphHelper::getGraphByEdgeRef(uint8_t* ref, size_t refSize) {
 LingoDBGraph* LingoDBGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) {
     return new LingoDBGraph(initialNodeCapacity, initialRelationshipCapacity);
 }
-GraphBase* GraphHelper::createTestGraph() {
+GraphBase* createDefaultTestGraph() {
     auto g = LingoDBGraph::create(16, 256);
-    GraphHelper::graphs.insert({g->nodeBufferPtr, g});
-    GraphHelper::graphs.insert({g->relBufferPtr, g});
     for (int i = 0; i < 6; i++) {
         g->addNode();
     }
@@ -80,6 +78,38 @@ GraphBase* GraphHelper::createTestGraph() {
     g->setNodeValue(3, 33);
     g->setNodeValue(4, 44);
     g->setNodeValue(5, 55);
+    return g;
+}
+struct Data {
+    double rank;
+    double nextRank;
+    int l;
+};
+GraphBase* createMichaelsPageRankGraph() {
+    auto g = Graph<Data, uint64_t>::create(16, 256);
+    for (int i = 0; i < 5; i++) {
+        g->addNode(Data{0.0, 0.0, 0});
+    }
+    g->addEdge(0, 1, 0);
+    g->addEdge(1, 2, 1);
+    g->addEdge(2, 4, 2);
+    g->addEdge(3, 4, 3);
+    g->addEdge(4, 1, 4);
+    g->addEdge(0, 3, 5);
+    return g;
+}
+GraphBase* GraphHelper::createTestGraph(uint64_t whichOne) {
+    GraphBase* g;
+    switch (whichOne) {
+        case 0: g = createDefaultTestGraph();
+            break;
+        case 1: g = createMichaelsPageRankGraph();
+            break;
+        default: g = createDefaultTestGraph();
+            break;
+    }
+    GraphHelper::graphs.insert({g->nodeBufferPtr, g});
+    GraphHelper::graphs.insert({g->relBufferPtr, g});
     return g;
 }
 

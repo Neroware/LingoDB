@@ -4160,7 +4160,16 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       if (!graphType) return failure();
       auto loc = createOp->getLoc();
       EntryStorageHelper storageHelper(createOp, graphType.getMembers(), graphType.hasLock(), typeConverter);
-      mlir::Value g = rt::GraphHelper::createTestGraph(rewriter, loc)({})[0];
+      auto graphTestAttr = createOp->getAttrOfType<IntegerAttr>("testgraph");
+      if (graphTestAttr) {
+         mlir::Value testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), graphTestAttr.getInt()));
+         mlir::Value g = rt::GraphHelper::createTestGraph(rewriter, loc)({testgraph})[0];
+         rewriter.replaceOp(createOp, g);
+         return mlir::success();
+      }
+      mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
+      mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
+      mlir::Value g = rt::LingoDBGraph::create(rewriter, loc)({nNodes, nEdges})[0];
       rewriter.replaceOp(createOp, g);
       return mlir::success();
    }

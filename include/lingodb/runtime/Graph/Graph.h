@@ -69,6 +69,7 @@ class Graph : public GraphBase {
     RelationshipEntry* getRelationship(edge_id_t rel) const {
         return relationships.ptr + rel;
     }
+    public:
     node_id_t addNode(T property) {
         NodeEntry* node;
         if (unusedNodeEntries.empty()) {
@@ -136,12 +137,31 @@ class Graph : public GraphBase {
 
         return relId;
     }
+    edge_id_t addEdge(node_id_t from, node_id_t to, U property) {
+        return addRelationship(from, to, 0, property);
+    }
     node_id_t removeNode(node_id_t node) {
         assert(false && "not impelemented"); // TODO implement
     }
     edge_id_t removeRelationship(edge_id_t rel) {
         assert(false && "not impelemented"); // TODO implement
     }
+    void setNodeValue(node_id_t node, T value) const { 
+        getNode(node)->property = value;
+    }
+    void setEdgeValue(edge_id_t edge, U value) const { 
+        getRelationship(edge)->property = value; 
+    }
+    T getNodeValue(node_id_t node) const { 
+        return getNode(node)->property; 
+    }
+    U getEdgeValue(edge_id_t edge) const { 
+        return getRelationship(edge)->property; 
+    }
+    static Graph<T, U>* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
+        return new Graph(initialNodeCapacity, initialRelationshipCapacity);
+    }
+    static void destroy(Graph<T, U>* graph) { delete graph; }
 }; // Graph
 struct GraphHelper {
     static BufferIterator* createNodeIterator(GraphBase* graph);
@@ -157,7 +177,7 @@ struct GraphHelper {
     static GraphBase* getGraphByNodeRef(uint8_t* ref, size_t refSize);
     static GraphBase* getGraphByEdgeRef(uint8_t* ref, size_t refSize);
 
-    static GraphBase* createTestGraph();
+    static GraphBase* createTestGraph(uint64_t whichOne);
 
     // Keeps track of all graph states
     static std::unordered_map<uint8_t*, GraphBase*> graphs;
@@ -171,6 +191,8 @@ public:
     edge_id_t addEdge(node_id_t from, node_id_t to) { return Graph::addRelationship(from, to, 0, 0); }
     void setNodeValue(node_id_t node, int64_t value) const { Graph::getNode(node)->property = value; }
     void setEdgeValue(edge_id_t edge, int64_t value) const { Graph::getRelationship(edge)->property = value; }
+    int64_t getNodeValue(node_id_t node) const { return Graph::getNode(node)->property; }
+    int64_t  getEdgeValue(edge_id_t edge) const { return Graph::getRelationship(edge)->property; }
     node_id_t removeNode(node_id_t node) { return Graph::removeNode(node); }
     edge_id_t removeEdge(edge_id_t rel) { return Graph::removeRelationship(rel); }
     size_t getNodeCount() const { return nodeCounter; }
