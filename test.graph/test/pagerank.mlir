@@ -26,7 +26,16 @@ module {
 
                 tuples.return %newRank, %newL : f64, i32
             }
+
+            %node_refs0 = subop.nested_map %graph_scans [@nodes::@set] (%arg0, %arg1){
+                %node_stream = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes::@ref({type = !graph.node_ref<[node_id_1 : i64],[incoming_1 : !graph.edge_set<[incoming_it_1 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_1 : !graph.edge_set<[outgoing_i_1t : !graph.graph_set_iterator<["outgoing"]>]>],[rank_0 : f64, nextRank_0 : f64, l_0 : i32]>})
+                tuples.return %node_stream : !tuples.tuplestream
+            }
+            %result_node_ids = subop.gather %node_refs0 @nodes::@ref {node_id_1 => @nodes::@id({type = i64})}
+            %result_node_ranks = subop.gather %result_node_ids @nodes::@ref {rank_1 => @nodes::@rank({type = f64})}
+            %result_node_l = subop.gather %result_node_ranks @nodes::@ref {l_1 => @nodes::@l({type = i32})}
             %result_table = subop.create !subop.result_table<[id0:i32, rank0 : f64, l0 :i32]>
+            subop.materialize %result_node_l {@nodes::@id => id0, @nodes::@rank => rank0, @nodes::@l => l0}, %0 : !subop.result_table<[int64p0 : i64]>
             %local_table = subop.create_from ["id","rank","l"] %result_table : !subop.result_table<[id0:i32,rank0 : f64, l0 :i32]> -> !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
             subop.execution_group_return %local_table : !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
         } -> !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
