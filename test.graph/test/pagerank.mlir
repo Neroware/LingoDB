@@ -27,19 +27,91 @@ module {
                 tuples.return %newRank, %newL : f64, i32
             }
 
-            %node_refs0 = subop.nested_map %graph_scans [@nodes::@set] (%arg0, %arg1){
-                %node_stream = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes::@ref({type = !graph.node_ref<[node_id_1 : i64],[incoming_1 : !graph.edge_set<[incoming_it_1 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_1 : !graph.edge_set<[outgoing_i_1t : !graph.graph_set_iterator<["outgoing"]>]>],[rank_0 : f64, nextRank_0 : f64, l_0 : i32]>})
+            %ctr = subop.create_simple_state !subop.simple_state<[ctr : i32]> initial: {
+                %c0 = db.constant(0) : i32
+                tuples.return %c0 : i32
+            }
+            %zero = subop.create_simple_state !subop.simple_state<[zero : i32]> initial: {
+                %c0 = db.constant(0) : i32
+                tuples.return %c0 : i32
+            }
+            %loop = subop.loop %zero : !subop.simple_state<[zero : i32]> (%arg) -> !subop.simple_state<[loop : i32]> {
+                %one = subop.create_simple_state !subop.simple_state<[one : i32]> initial: {
+                    %c1 = db.constant(1) : i32
+                    tuples.return %c1 : i32
+                }
+
+                %iLStream0 = graph.subop.scan_graph %graph : !graph.graph<[vx : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>],[ex : !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>]> @nodes0::@set({type = !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>}), @edges0::@set({type = !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>})
+                %iLStream1 = graph.node_count %iLStream0, %graph -> @graph0::@numVertices({type = index}) : !graph.graph<[vx : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>],[ex : !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>]>
+                %iLStream2 = subop.nested_map %iLStream1 [@nodes0::@set] (%arg0, %arg1){
+                    %node_stream = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes0::@ref({type = !graph.node_ref<[node_id_2 : i64],[incoming_2 : !graph.edge_set<[incoming_it_2 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_2 : !graph.edge_set<[outgoing_it_2: !graph.graph_set_iterator<["outgoing"]>]>],[rank_1 : f64, nextRank_1 : f64, l_1 : i32]>})
+                    tuples.return %node_stream : !tuples.tuplestream
+                }
+                %iLStream3 = subop.map %iLStream2 computes: [@nodes0::@initialRank({type=f64})] input:[@graph0::@numVertices] (%totalVertices : index){
+                    %totalVerticesI64 = arith.index_cast %totalVertices : index to i64
+                    %totalVerticesf = arith.uitofp %totalVerticesI64 : i64 to f64
+                    %c15 = arith.constant 0.15 : f64
+                    %initialRank = arith.divf %c15,%totalVerticesf : f64
+                    tuples.return %initialRank : f64
+                }
+                subop.scatter %iLStream3 @nodes0::@ref { @nodes0::@initialRank => nextRank_1 }
+                %iLStream4 = subop.gather %iLStream3 @nodes0::@ref {outgoing_2 => @nodes0::@outgoing({type = !graph.edge_set<[outgoing_it_1 : !graph.graph_set_iterator<["outgoing"]>]>})}
+                %iLStream5 = subop.nested_map %iLStream4 [@nodes0::@outgoing] (%arg0, %arg1){
+                    %edge_stream = graph.subop.scan_edge_set %arg1 : !graph.edge_set<[outgoing_it_1 : !graph.graph_set_iterator<["outgoing"]>]> @edges0::@ref({type = !graph.edge_ref<[edge_id_1 : i64],[from_1: !graph.node_ref<[node_id_3 : i64],[incoming_3 : !graph.edge_set<[incoming_it_3 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_3 : !graph.edge_set<[outgoing_it_3 : !graph.graph_set_iterator<["outgoing"]>]>],[rank_3 : f64, nextRank_3 : f64, l_3 : i32]>],[to_1 : !graph.node_ref<[node_id_4 : i64],[incoming_4 : !graph.edge_set<[incoming_it_4 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_4 : !graph.edge_set<[outgoing_it_4 : !graph.graph_set_iterator<["outgoing"]>]>],[rank_4 : f64, nextRank_4 : f64, l_4 : i32]>],[eprop_1 : i64]>})
+                    tuples.return %edge_stream : !tuples.tuplestream
+                }
+                %iLStream6 = subop.gather %iLStream5 @edges0::@ref { to_1 => @edges0::@to({type = !graph.node_ref<[node_id_4 : i64],[incoming_4 : !graph.edge_set<[incoming_it_4 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_4 : !graph.edge_set<[outgoing_it_4 : !graph.graph_set_iterator<["outgoing"]>]>],[rank_4 : f64, nextRank_4 : f64, l_4 : i32]>}) }
+                %iLStream7 = subop.gather %iLStream6 @nodes0::@ref { rank_1 => @nodes0::@rank({type = f64}) }
+                %iLStream8 = subop.gather %iLStream7 @nodes0::@ref { l_1 => @nodes0::@l({type = i32}) }
+                subop.reduce %iLStream8 @edges0::@to [@nodes0::@rank,@nodes0::@l] ["nextRank_4"] ([%currRank,%currL],[%rank]){
+                    %c085 = arith.constant 0.85 : f64
+                    %c1 = arith.constant 1 : i32
+                    %safeL = arith.maxui %c1, %currL :i32
+                    %currLF= arith.uitofp %safeL : i32 to f64
+                    %toAdd = arith.divf %currRank, %currLF : f64
+                    %damped= arith.mulf %toAdd, %c085 : f64
+                    %newRank = arith.addf %rank, %damped : f64
+                    tuples.return %newRank : f64
+                }
+                %iLStream9 = subop.gather %iLStream8 @nodes0::@ref { nextRank_1 => @nodes0::@nextRank({type = i32}) }
+                // subop.scatter %iLStream9 @nodes0::@ref { @nodes0::@nextRank => rank_1 }
+
+                %shouldContinue = subop.create_simple_state !subop.simple_state<[shouldContinue:i1]> initial: {
+				    %false = arith.constant 0 : i1
+				    tuples.return %false : i1
+			    }
+                %20 = subop.scan_refs %ctr : !subop.simple_state<[ctr:i32]> @s::@ref({type=!subop.entry_ref<!subop.simple_state<[ctr:i32]>>})
+                %21 = subop.gather %20 @s::@ref {ctr=> @s::@ctr({type=i32})}
+                %s23 = subop.map %21 computes: [@m::@p1({type=i32}),@m::@continue({type=i1})] input: [@s::@ctr] (%ctrVal : i32){
+                    %c1 = db.constant(1) : i32
+                    %p1 = arith.addi %c1, %ctrVal : i32
+                    %c5 = arith.constant 1000 : i32
+                    %p1Lt5 = arith.cmpi slt, %p1, %c5 : i32
+                    tuples.return %p1, %p1Lt5 : i32,i1
+                }
+           	    %s24 = subop.lookup %s23 %shouldContinue[] : !subop.simple_state<[shouldContinue:i1]> @ls::@ref({type=!subop.entry_ref<!subop.simple_state<[shouldContinue:i1]>>})
+                subop.scatter %s23 @s::@ref {@m::@p1 => ctr}
+                subop.scatter %s24 @ls::@ref {@m::@continue => shouldContinue}
+                subop.loop_continue (%shouldContinue:  !subop.simple_state<[shouldContinue:i1]>["shouldContinue"]) %one : !subop.simple_state<[one : i32]>
+            }
+            %result_stream = subop.scan_refs %loop : !subop.simple_state<[loop : i32]> @loop::@ref({type=!subop.entry_ref<!subop.simple_state<[loop : i32]>>})
+            %result_graph_scan = subop.nested_map %result_stream [@loop::@ref] (%arg0, %arg1){
+                %graph_stream = graph.subop.scan_graph %graph : !graph.graph<[vx : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>],[ex : !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>]> @nodes1::@set({type = !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]>}), @edges::@set({type = !graph.edge_set<[ex_it : !graph.graph_set_iterator<["all"]>]>})
+                tuples.return %graph_stream : !tuples.tuplestream
+            }
+            %result_node_refs = subop.nested_map %result_graph_scan [@nodes1::@set] (%arg0, %arg1){
+                %node_stream = graph.subop.scan_node_set %arg1 : !graph.node_set<[vx_it : !graph.graph_set_iterator<["all"]>]> @nodes1::@ref({type = !graph.node_ref<[node_id_1 : i64],[incoming_1 : !graph.edge_set<[incoming_it_1 : !graph.graph_set_iterator<["incoming"]>]>],[outgoing_1 : !graph.edge_set<[outgoing_it_1 : !graph.graph_set_iterator<["outgoing"]>]>],[rank_0 : f64, nextRank_0 : f64, l_0 : i32]>})
                 tuples.return %node_stream : !tuples.tuplestream
             }
-            %result_node_ids = subop.gather %node_refs0 @nodes::@ref {node_id_1 => @nodes::@id({type = i64})}
-            %result_node_ranks = subop.gather %result_node_ids @nodes::@ref {rank_1 => @nodes::@rank({type = f64})}
-            %result_node_l = subop.gather %result_node_ranks @nodes::@ref {l_1 => @nodes::@l({type = i32})}
-            %result_table = subop.create !subop.result_table<[id0:i32, rank0 : f64, l0 :i32]>
-            subop.materialize %result_node_l {@nodes::@id => id0, @nodes::@rank => rank0, @nodes::@l => l0}, %0 : !subop.result_table<[int64p0 : i64]>
-            %local_table = subop.create_from ["id","rank","l"] %result_table : !subop.result_table<[id0:i32,rank0 : f64, l0 :i32]> -> !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
-            subop.execution_group_return %local_table : !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
-        } -> !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
-        subop.set_result 0 %subop_result  : !subop.local_table<[id0:i32,rank0 : f64, l0 :i32],["id","rank","l"]>
+            %result_node_ids = subop.gather %result_node_refs @nodes1::@ref {node_id_1 => @nodes1::@id({type = i64})}
+            %result_node_ranks = subop.gather %result_node_ids @nodes1::@ref {nextRank_0 => @nodes1::@rank({type = f64})}
+            %result_node_l = subop.gather %result_node_ranks @nodes1::@ref {l_0 => @nodes1::@l({type = i32})}
+            %result_table = subop.create !subop.result_table<[id0 : i32, rank0 : f64, l0 : i32]>
+            subop.materialize %result_node_l {@nodes1::@id => id0, @nodes1::@rank => rank0, @nodes1::@l => l0}, %result_table : !subop.result_table<[id0 : i32, rank0 : f64, l0 : i32]>
+            %local_table = subop.create_from ["id", "rank", "l"] %result_table : !subop.result_table<[id0 : i32, rank0 : f64, l0 :i32]> -> !subop.local_table<[id0 : i32, rank0 : f64, l0 : i32],["id", "rank", "l"]>
+            subop.execution_group_return %local_table : !subop.local_table<[id0 : i32, rank0 : f64, l0 :i32],["id","rank","l"]>
+        } -> !subop.local_table<[id0 : i32, rank0 : f64, l0 : i32],["id", "rank", "l"]>
+        subop.set_result 0 %subop_result  : !subop.local_table<[id0 : i32, rank0 : f64, l0 : i32],["id", "rank", "l"]>
         return
     }
 }
