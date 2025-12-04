@@ -176,7 +176,7 @@ class Graph : public GraphBase {
 
 struct node_property_t {
     double rank;
-    double newRank;
+    double nextRank;
     int l;
 };
 struct rel_property_t {
@@ -216,7 +216,7 @@ void pagerank(Graph<node_property_t, rel_property_t>* graph, int repeats, double
 
     for (int iter = 0; iter < repeats; iter++) {
         for(int n = 0; n < nNodes; n++) {
-            graph->getNode(n)->property.newRank = 0.15 / nNodes;
+            graph->getNode(n)->property.nextRank = 0.15 / nNodes;
         }
         for (int n = 0; n < nNodes; n++) {
             auto node = graph->getNode(n);
@@ -225,15 +225,14 @@ void pagerank(Graph<node_property_t, rel_property_t>* graph, int repeats, double
                 auto rel = graph->getRelationship(nextRel);
                 if (rel->inUse && rel->firstNode == n) {
                     auto toNode = graph->getNode(rel->secondNode);
-                    toNode->property.newRank += damping * (node->property.rank / node->property.l);
+                    toNode->property.nextRank += damping * (node->property.rank / node->property.l);
                 }
                 nextRel = n == rel->firstNode ? rel->firstNextRelation : rel->secondNextRelation;
             }
         }
         for (int n = 0; n < nNodes; n++) {
             auto node = graph->getNode(n);
-            node->property.rank = node->property.newRank;
-            node->property.newRank = 0.0;
+            node->property.rank = node->property.nextRank;
         }
     }
     
@@ -245,7 +244,10 @@ int main() {
     pagerank(g, 1000, 0.85);
 
     for (int n = 0; n < g->nodeCounter; n++) {
-        std::cout << "n = " << n << ", rank = " << g->getNode(n)->property.rank << ", l = " << g->getNode(n)->property.l << std::endl;
+        std::cout << "n = " << n 
+            << ", rank = " << g->getNode(n)->property.rank 
+            << ", l = " << g->getNode(n)->property.l 
+            << std::endl;
     }
 
     delete g;

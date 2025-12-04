@@ -4807,7 +4807,7 @@ class ReduceGraphRefLowering : public SubOpTupleStreamConsumerConversionPattern<
          propertyMembers = edgeRefType.getPropertyMembers();
          hasLock = edgeRefType.hasLock();
       }
-      if (!ref) return failure();
+      if (!nodeRefType && !edgeRefType) return failure();
       EntryStorageHelper storageHelper(reduceOp, propertyMembers, hasLock, typeConverter);
       auto values = storageHelper.getValueMap(ref, rewriter, reduceOp->getLoc());
       std::vector<mlir::Value> arguments;
