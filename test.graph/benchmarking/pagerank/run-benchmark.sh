@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-rm *.log >> /dev/null
+rm -f *.log
 
 readonly GRAPH_DIR="../../../test.graph/"
 readonly RUN_MLIR="../../../build/run-mlir"
