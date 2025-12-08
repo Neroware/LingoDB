@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <vector>
+#include <chrono>
 
 struct MemoryHelper {
    static uint8_t* resize(uint8_t* old, size_t oldNumBytes, size_t newNumBytes) {
@@ -241,8 +242,13 @@ void pagerank(Graph<node_property_t, rel_property_t>* graph, int repeats, double
 int main() {
     std::cout << "Running PageRank..." << std::endl;
     auto g = createGraph();
-    pagerank(g, 1000, 0.85);
 
+    auto start = std::chrono::high_resolution_clock::now();
+    pagerank(g, 1000, 0.85);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    std::cout << "pagerank.cpp" << "\t" << duration.count() << " microseconds" << std::endl;
     for (int n = 0; n < g->nodeCounter; n++) {
         std::cout << "n = " << n 
             << ", rank = " << g->getNode(n)->property.rank 
