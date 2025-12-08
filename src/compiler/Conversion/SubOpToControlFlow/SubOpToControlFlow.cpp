@@ -1,6 +1,7 @@
 #include "lingodb/compiler/Conversion/SubOpToControlFlow/SubOpToControlFlowPass.h"
 
 #include "lingodb/compiler/Conversion/UtilToLLVM/Passes.h"
+#include "lingodb/compiler/Conversion/Graph/GraphTypeIdentifier.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowDialect.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowOps.h"
 #include "lingodb/compiler/Dialect/DB/IR/DBDialect.h"
@@ -4884,6 +4885,49 @@ class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
    }
 };
 
+class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropertySetOp> {
+   public:
+   using SubOpConversionPattern<graph::ScanPropertySetOp>::SubOpConversionPattern;
+   LogicalResult matchAndRewrite(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      auto propSetType = mlir::dyn_cast_or_null<graph::EdgeSetType>(scanRefsOp.getPropSet().getType());
+      if (!propSetType) return failure();
+      auto propRefColType = scanRefsOp.getProducedReference().getColumn().type;
+      auto propRefType = mlir::dyn_cast_or_null<graph::PropertyRefType>(propRefColType);
+      if (!propRefType) return failure();
+      if (propRefType.getMembers().getMembers().size() == 0) assert(false && "Property set requires an iterator member!");
+      auto propSetIt = memberManager.getType(*(propSetType.getMembers().getMembers().begin()));
+      auto propSetItType = mlir::dyn_cast_or_null<graph::GraphSetIteratorType>(propSetIt);
+      if (!propSetItType) assert(false && "Property set requires an iterator member!");
+      if (propSetItType.getStrategy().size() == 0) assert(false && "Property set iterator requires an iteration strategy!");
+      auto propSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(propSetItType.getStrategy().begin()));
+      if (!propSetItStrategy) return failure();
+      if (propSetItStrategy.str() == "node") return genIterationStrategyNode(scanRefsOp, adaptor, rewriter, propRefType);
+      if (propSetItStrategy.str() == "edge") return genIterationStrategyEdge(scanRefsOp, adaptor, rewriter, propRefType);
+      return failure();
+      // auto loc = scanRefsOp.getLoc();
+      // auto ctxt = scanRefsOp.getContext();
+      // auto propertySetType = scanRefsOp.getPropSet().getType().dyn_cast<graph::PropertySetType>();
+      // return failure();
+   }
+   LogicalResult genIterationStrategyNode(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::PropertyRefType propRefType) const {
+      ColumnMapping mapping;
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      auto loc = scanRefsOp->getLoc();
+      auto ref = adaptor.getPropSet();
+      auto ctxt = scanRefsOp.getContext();
+      return failure();
+   }
+   LogicalResult genIterationStrategyEdge(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::PropertyRefType propRefType) const {
+      ColumnMapping mapping;
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      auto loc = scanRefsOp->getLoc();
+      auto ref = adaptor.getPropSet();
+      auto ctxt = scanRefsOp.getContext();
+      return failure();
+   }
+};
+
 
 }; // namespace
 namespace {
@@ -4926,6 +4970,7 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ReduceGraphRefLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
    //PropertyGraph
 
    //Hashmap

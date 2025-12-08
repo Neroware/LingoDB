@@ -41,15 +41,15 @@ BufferIterator* GraphHelper::createEdgeIterator(GraphBase* graph) {
     return new GraphEdgeTableIterator(*graph);
 }
 void* GraphHelper::getLinkedEgdesLListHeadOf(GraphBase* graph, uint8_t* ref, size_t refSize) {
-    auto node = (NodeEntryBase*) ref;
+    auto node = (GraphBase::NodeEntryBase*) ref;
     return graph->relBufferPtr + node->nextRelationship * refSize;
 }
 GraphBase* GraphHelper::getGraphByNodeRef(uint8_t* ref, size_t refSize) {
-    auto node = (NodeEntryBase*) ref;
+    auto node = (GraphBase::NodeEntryBase*) ref;
     return GraphHelper::graphs[(ref - node->id * refSize)];
 }
 GraphBase* GraphHelper::getGraphByEdgeRef(uint8_t* ref, size_t refSize) {
-    auto rel = (RelationshipEntryBase*) ref;
+    auto rel = (GraphBase::RelationshipEntryBase*) ref;
     return GraphHelper::graphs[(ref - rel->id * refSize)];
 }
 LingoDBGraph* LingoDBGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) {

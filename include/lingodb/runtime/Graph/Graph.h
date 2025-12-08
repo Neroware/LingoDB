@@ -10,31 +10,31 @@ namespace lingodb::runtime {
 typedef int64_t node_id_t;
 typedef int64_t edge_id_t;
 typedef uint64_t relation_type_id_t;
+// Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
+// See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
 struct GraphBase {
     uint8_t* nodeBufferPtr;
     size_t nodeBufferLen;
     uint8_t* relBufferPtr;
     size_t relBufferLen;
+    struct NodeEntryBase {
+        bool inUse;
+        node_id_t id;
+        edge_id_t nextRelationship;
+    }; // NodeEntryBase
+    struct RelationshipEntryBase {
+        bool inUse;
+        edge_id_t id;
+        node_id_t firstNode;
+        node_id_t secondNode;
+        relation_type_id_t type;
+        edge_id_t firstPrevRelation;
+        edge_id_t firstNextRelation;
+        edge_id_t secondPrevRelation;
+        edge_id_t secondNextRelation;
+    }; // RelationshipEntryBase
 }; // GraphBase
-struct NodeEntryBase {
-    bool inUse;
-    node_id_t id;
-    edge_id_t nextRelationship;
-}; // NodeEntryBase
-struct RelationshipEntryBase {
-    bool inUse;
-    edge_id_t id;
-    node_id_t firstNode;
-    node_id_t secondNode;
-    relation_type_id_t type;
-    edge_id_t firstPrevRelation;
-    edge_id_t firstNextRelation;
-    edge_id_t secondPrevRelation;
-    edge_id_t secondNextRelation;
-}; // RelationshipEntryBase
 
-// Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
-// See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
 template<typename T, typename U>
 class Graph : public GraphBase {
     protected:
