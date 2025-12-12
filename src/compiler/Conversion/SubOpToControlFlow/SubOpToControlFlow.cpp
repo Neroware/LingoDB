@@ -3960,6 +3960,64 @@ static std::vector<T> repeat(T val, size_t times) {
    return res;
 }
 
+class StepLowering : public SubOpConversionPattern<subop::StepOp> {
+   public:
+   using SubOpConversionPattern<subop::StepOp>::SubOpConversionPattern;
+
+   LogicalResult matchAndRewrite(subop::StepOp stepOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto* b = stepOp.getBody();
+      auto* terminator = b->getTerminator();
+      auto stepReturn = mlir::cast<subop::StepReturnOp>(terminator);
+      auto nestedExecutionGroup = mlir::dyn_cast_or_null<subop::NestedExecutionGroupOp>(&stepOp.getBody()->front());
+      if (!nestedExecutionGroup) {
+         stepOp.emitError("StepOp should have a NestedExecutionGroupOp as the first operation in the region");
+         return failure();
+      }
+
+      for (size_t i = 0; i < stepOp.getBody()->getNumArguments(); i++) {
+         rewriter.map(stepOp.getBody()->getArgument(i), adaptor.getArgs()[i]);
+      }
+      mlir::IRMapping nestedGroupResultMapping;
+
+      mlir::IRMapping outerMapping;
+      for (auto [i, b] : llvm::zip(nestedExecutionGroup.getInputs(), nestedExecutionGroup.getRegion().front().getArguments())) {
+         outerMapping.map(b, rewriter.getMapped(i));
+      }
+      for (auto& op : nestedExecutionGroup.getRegion().front().getOperations()) {
+         if (auto step = mlir::dyn_cast_or_null<subop::ExecutionStepOp>(&op)) {
+            auto guard = rewriter.nest(outerMapping, step);
+            for (auto [param, arg, isThreadLocal] : llvm::zip(step.getInputs(), step.getSubOps().front().getArguments(), step.getIsThreadLocal())) {
+               mlir::Value input = outerMapping.lookup(param);
+               rewriter.map(arg, input);
+            }
+            mlir::IRMapping cloneMapping;
+            std::vector<mlir::Operation*> ops;
+            for (auto& op : step.getSubOps().front()) {
+               if (&op == step.getSubOps().front().getTerminator())
+                  break;
+               ops.push_back(&op);
+            }
+            for (auto* op : ops) {
+               op->remove();
+               rewriter.insertAndRewrite(op);
+            }
+            auto returnOp = mlir::cast<subop::ExecutionStepReturnOp>(step.getSubOps().front().getTerminator());
+            for (auto [i, o] : llvm::zip(returnOp.getInputs(), step.getResults())) {
+               auto mapped = rewriter.getMapped(i);
+               outerMapping.map(o, mapped);
+            }
+         } else if (auto returnOp = mlir::dyn_cast_or_null<subop::NestedExecutionGroupReturnOp>(&op)) {
+            for (auto [i, o] : llvm::zip(returnOp.getInputs(), nestedExecutionGroup.getResults())) {
+               nestedGroupResultMapping.map(o, outerMapping.lookup(i));
+            }
+         }
+      }
+
+      rewriter.replaceOp(stepOp, stepReturn->getOperands());
+      return success();
+   }
+};
+
 class LoopLowering : public SubOpConversionPattern<subop::LoopOp> {
    public:
    using SubOpConversionPattern<subop::LoopOp>::SubOpConversionPattern;
@@ -4162,15 +4220,18 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       auto loc = createOp->getLoc();
       EntryStorageHelper storageHelper(createOp, graphType.getMembers(), graphType.hasLock(), typeConverter);
       auto graphTestAttr = createOp->getAttrOfType<IntegerAttr>("testgraph");
+      mlir::Value g;
+      mlir::Value testgraph;
       if (graphTestAttr) {
-         mlir::Value testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), graphTestAttr.getInt()));
-         mlir::Value g = rt::GraphHelper::createTestGraph(rewriter, loc)({testgraph})[0];
-         rewriter.replaceOp(createOp, g);
-         return mlir::success();
+         testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), graphTestAttr.getInt()));
+         g = rt::GraphHelper::createTestGraph(rewriter, loc)({testgraph})[0];
       }
-      mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
-      mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
-      mlir::Value g = rt::LingoDBGraph::create(rewriter, loc)({nNodes, nEdges})[0];
+      else {
+         mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
+         mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
+         testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
+         g = rt::LingoDBGraph::create(rewriter, loc)({nNodes, nEdges})[0];
+      }
       rewriter.replaceOp(createOp, g);
       return mlir::success();
    }
@@ -4392,25 +4453,27 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             rewriter.atStartOf(before, [&](SubOpRewriter& rewriter) {
                auto elem = rewriter.create<util::LoadOp>(loc, beforeArg);
                auto valid = isValid(rewriter, loc, elem);
-               auto skip = skipCondition(rewriter, loc, elem);
-               // auto skipNeg = rewriter.create<db::NotOp>(loc, skip);
-               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skip);
+               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, valid);
                ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
                rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
-                  // Payload here!!!
-                  auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
-                  auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-                  mapping.define(scanRefsOp.getRef(), edgeRef);
-                  rewriter.replaceTupleStream(scanRefsOp, mapping);
+                  auto skip = skipCondition(rewriter, loc, elem);
+                  auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skip);
+                  ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
+                  rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
+                     // Payload here!!!
+                     auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
+                     auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
+                     mapping.define(scanRefsOp.getRef(), edgeRef);
+                     rewriter.replaceTupleStream(scanRefsOp, mapping);
+                  });
+                  auto nextElem = next(rewriter, loc, elem);
+                  rewriter.create<util::StoreOp>(loc, nextElem, llistElemRef, mlir::Value());
                });
-               auto nextElem = next(rewriter, loc, elem);
-               rewriter.create<util::StoreOp>(loc, nextElem, llistElemRef, mlir::Value());
                rewriter.create<mlir::scf::ConditionOp>(loc, valid, beforeArg);
             });
             rewriter.atStartOf(after, [&](SubOpRewriter& rewriter) {
                rewriter.create<mlir::scf::YieldOp>(loc, afterArg);
             });
-
             rewriter.create<mlir::func::ReturnOp>(loc);
          });
 
@@ -4540,19 +4603,22 @@ class ScanEdgeSetLowering : public SubOpConversionPattern<graph::ScanEdgeSetOp> 
             rewriter.atStartOf(before, [&](SubOpRewriter& rewriter) {
                auto elem = rewriter.create<util::LoadOp>(loc, beforeArg);
                auto valid = isValid(rewriter, loc, elem);
-               auto skip = skipCondition(rewriter, loc, elem);
-               // auto skipNeg = rewriter.create<db::NotOp>(loc, skip);
-               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skip);
+               auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, valid);
                ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
                rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
-                  // Payload here!!!
-                  auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
-                  auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
-                  mapping.define(scanRefsOp.getRef(), edgeRef);
-                  rewriter.replaceTupleStream(scanRefsOp, mapping);
-               });
-               auto nextElem = next(rewriter, loc, elem);
-               rewriter.create<util::StoreOp>(loc, nextElem, llistElemRef, mlir::Value());
+                  auto skip = skipCondition(rewriter, loc, elem);
+                  auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, skip);
+                  ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, scanRefsOp->getLoc());
+                  rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
+                     // Payload here!!!
+                     auto elemIndex = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
+                     auto edgeRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, edgeEntryType), edgeBuf, elemIndex);
+                     mapping.define(scanRefsOp.getRef(), edgeRef);
+                     rewriter.replaceTupleStream(scanRefsOp, mapping);
+                  });
+                  auto nextElem = next(rewriter, loc, elem);
+                  rewriter.create<util::StoreOp>(loc, nextElem, llistElemRef, mlir::Value());
+               });               
                rewriter.create<mlir::scf::ConditionOp>(loc, valid, beforeArg);
             });
             rewriter.atStartOf(after, [&](SubOpRewriter& rewriter) {
@@ -4911,19 +4977,19 @@ class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropert
       // return failure();
    }
    LogicalResult genIterationStrategyNode(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::PropertyRefType propRefType) const {
-      ColumnMapping mapping;
-      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
-      auto loc = scanRefsOp->getLoc();
-      auto ref = adaptor.getPropSet();
-      auto ctxt = scanRefsOp.getContext();
+      // ColumnMapping mapping;
+      // auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      // auto loc = scanRefsOp->getLoc();
+      // auto ref = adaptor.getPropSet();
+      // auto ctxt = scanRefsOp.getContext();
       return failure();
    }
    LogicalResult genIterationStrategyEdge(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter, graph::PropertyRefType propRefType) const {
-      ColumnMapping mapping;
-      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
-      auto loc = scanRefsOp->getLoc();
-      auto ref = adaptor.getPropSet();
-      auto ctxt = scanRefsOp.getContext();
+      // ColumnMapping mapping;
+      // auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      // auto loc = scanRefsOp->getLoc();
+      // auto ref = adaptor.getPropSet();
+      // auto ctxt = scanRefsOp.getContext();
       return failure();
    }
 };
@@ -5049,6 +5115,7 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<InFlightLowering>(typeConverter, ctxt);
    rewriter.insertPattern<GenerateLowering>(typeConverter, ctxt);
    rewriter.insertPattern<LoopLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<StepLowering>(typeConverter, ctxt);
    rewriter.insertPattern<NestedExecutionGroupLowering>(typeConverter, ctxt);
    //rewriter.insertPattern<GetSingleValLowering>(typeConverter, ctxt);
    rewriter.insertPattern<SetTrackedCountLowering>(typeConverter, ctxt);
