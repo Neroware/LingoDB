@@ -37,6 +37,8 @@ add_library(runtime OBJECT
         Session.cpp
         storage/LingoDBTable.cpp
         storage/Restrictions.cpp
+        Graph/Graph.cpp
+        Graph/PropertyGraph.cpp
 )
 set(COMPILE_DEFS "")
 if (ENABLE_GPU_BACKEND)

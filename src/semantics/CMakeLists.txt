@@ -1,0 +1,1 @@
+add_library(semantics UriHelper.cpp)

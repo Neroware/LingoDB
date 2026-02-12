@@ -128,6 +128,8 @@ gen_rt_def(st-rt-defs "SimpleState.h")
 gen_rt_def(paht-rt-defs "PreAggregationHashtable.h")
 gen_rt_def(lock-rt-defs "EntryLock.h")
 gen_rt_def(tracing-rt-defs "Tracing.h")
+gen_rt_def(graph-rt-defs "Graph/Graph.h")
+gen_rt_def(propgraph-rt-defs "Graph/PropertyGraph.h")
 message("cpp files ${runtime_funcs_ptr_libs}")
 string(REPLACE " " ";" runtime_funcs_ptr_libs "${runtime_funcs_ptr_libs}")
 
@@ -141,6 +143,7 @@ add_subdirectory(src/compiler/mlir-support)
 add_subdirectory(src/compiler/Dialect/RelAlg)
 add_subdirectory(src/compiler/Dialect/TupleStream)
 add_subdirectory(src/compiler/Dialect/SubOperator)
+add_subdirectory(src/compiler/Dialect/Graph)
 
 add_subdirectory(src/compiler/Dialect/DB)
 add_subdirectory(src/compiler/Dialect/Arrow)
@@ -167,6 +170,7 @@ set(LIBS
         MLIRRelAlg
         MLIRTupleStream
         MLIRSubOperator
+        MLIRGraph
         MLIRUtil
         MLIRDB
         MLIRArrow
@@ -192,6 +196,7 @@ add_subdirectory(src/runtime)
 add_subdirectory(src/execution)
 add_subdirectory(src/compiler/frontend)
 add_subdirectory(src/tools)
+add_subdirectory(src/semantics)
 add_subdirectory(tools)
 if (ENABLE_TESTS)
     add_subdirectory(test)

@@ -1,0 +1,206 @@
+#ifndef LINGODB_RUNTIME_GRAPH_GRAPH_H
+#define LINGODB_RUNTIME_GRAPH_GRAPH_H
+
+#include "lingodb/runtime/helpers.h"
+#include "lingodb/runtime/Buffer.h"
+#include <cassert>
+
+namespace lingodb::runtime {
+
+typedef int64_t node_id_t;
+typedef int64_t edge_id_t;
+typedef uint64_t relation_type_id_t;
+// Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
+// See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
+struct GraphBase {
+    uint8_t* nodeBufferPtr;
+    size_t nodeBufferLen;
+    uint8_t* relBufferPtr;
+    size_t relBufferLen;
+    struct NodeEntryBase {
+        bool inUse;
+        node_id_t id;
+        edge_id_t nextRelationship;
+    }; // NodeEntryBase
+    struct RelationshipEntryBase {
+        bool inUse;
+        edge_id_t id;
+        node_id_t firstNode;
+        node_id_t secondNode;
+        relation_type_id_t type;
+        edge_id_t firstPrevRelation;
+        edge_id_t firstNextRelation;
+        edge_id_t secondPrevRelation;
+        edge_id_t secondNextRelation;
+    }; // RelationshipEntryBase
+}; // GraphBase
+
+template<typename T, typename U>
+class Graph : public GraphBase {
+    protected:
+    node_id_t nodeCounter = 0;
+    edge_id_t relCounter = 0;
+    struct NodeEntry : public NodeEntryBase {
+        T property;
+    }; // NodeEntry
+    struct RelationshipEntry : public RelationshipEntryBase {
+        U property;
+    }; // RelationshipEntry
+    runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
+    runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
+    std::vector<NodeEntry*> unusedNodeEntries;
+    std::vector<RelationshipEntry*> unusedRelEntries;
+    Graph(size_t maxNodeCapacity, size_t maxRelCapacity) 
+        : nodeCounter(0), relCounter(0), nodes(maxNodeCapacity), relationships(maxRelCapacity) {
+            nodeBufferPtr = (uint8_t*) nodes.ptr;
+            relBufferPtr = (uint8_t*) relationships.ptr;
+            nodeBufferLen = relBufferLen = 0;
+    }
+    
+    node_id_t getNodeId(NodeEntry* node) const {
+        return node - nodes.ptr;
+    }
+    NodeEntry* getNode(node_id_t node) const {
+        return nodes.ptr + node;
+    }
+    edge_id_t getRelationshipId(RelationshipEntry* rel) const {
+        return rel - relationships.ptr;
+    }
+    RelationshipEntry* getRelationship(edge_id_t rel) const {
+        return relationships.ptr + rel;
+    }
+    public:
+    node_id_t addNode(T property) {
+        NodeEntry* node;
+        if (unusedNodeEntries.empty()) {
+            node = nodes.getPtr(nodeCounter++);
+            nodeBufferLen += sizeof(NodeEntry);
+        }
+        else {
+            node = unusedNodeEntries.back();
+            unusedNodeEntries.pop_back();
+        }
+        assert(!node->inUse && "should not happen");
+        node_id_t nodeId = getNodeId(node);
+        node->inUse = true;
+        node->id = nodeId;
+        node->nextRelationship = -1;
+        node->property = property;
+        return nodeId;
+    }
+    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type, U property) {
+        RelationshipEntry* rel;
+        NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
+        if (unusedRelEntries.empty()) {
+            rel = relationships.getPtr(relCounter++);
+            relBufferLen += sizeof(RelationshipEntry);
+        }
+        else {
+            rel = unusedRelEntries.back();
+            unusedRelEntries.pop_back();
+        }
+        assert(!rel->inUse && "should not happen");
+        edge_id_t relId = getRelationshipId(rel);
+        rel->inUse = true;
+        rel->id = relId;
+        rel->firstNode = from;
+        rel->secondNode = to;
+        rel->type = type;
+        rel->firstNextRelation = rel->firstPrevRelation = rel->secondNextRelation = rel->secondPrevRelation = -1;
+        rel->property = property;
+        if (fromNode->nextRelationship >= 0) {
+            RelationshipEntry* head = getRelationship(fromNode->nextRelationship);
+            if (head->firstNode == from) {
+                head->firstPrevRelation = relId;
+                rel->firstNextRelation = head->id;   
+            }
+            else {
+                head->secondPrevRelation = relId;
+                rel->firstNextRelation = head->id;
+            }
+        }
+        fromNode->nextRelationship = relId;
+        if (from != to) {
+            if (toNode->nextRelationship >= 0) {
+                RelationshipEntry* head = getRelationship(toNode->nextRelationship);
+                if (head->firstNode == to) {
+                    head->firstPrevRelation = relId;
+                    rel->secondNextRelation = head->id;   
+                }
+                else {
+                    head->secondPrevRelation = relId;
+                    rel->secondNextRelation = head->id;
+                }
+            }
+            toNode->nextRelationship = relId;
+        }
+
+        return relId;
+    }
+    edge_id_t addEdge(node_id_t from, node_id_t to, U property) {
+        return addRelationship(from, to, 0, property);
+    }
+    node_id_t removeNode(node_id_t node) {
+        assert(false && "not impelemented"); // TODO implement
+    }
+    edge_id_t removeRelationship(edge_id_t rel) {
+        assert(false && "not impelemented"); // TODO implement
+    }
+    void setNodeValue(node_id_t node, T value) const { 
+        getNode(node)->property = value;
+    }
+    void setEdgeValue(edge_id_t edge, U value) const { 
+        getRelationship(edge)->property = value; 
+    }
+    T getNodeValue(node_id_t node) const { 
+        return getNode(node)->property; 
+    }
+    U getEdgeValue(edge_id_t edge) const { 
+        return getRelationship(edge)->property; 
+    }
+    static Graph<T, U>* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
+        return new Graph(initialNodeCapacity, initialRelationshipCapacity);
+    }
+    static void destroy(Graph<T, U>* graph) { delete graph; }
+}; // Graph
+struct GraphHelper {
+    static BufferIterator* createNodeIterator(GraphBase* graph);
+    static BufferIterator* createEdgeIterator(GraphBase* graph);
+    static void* getNodeBufferPtr(GraphBase* graph) { return graph->nodeBufferPtr; }
+    static size_t getNodeBufferLen(GraphBase* graph) { return graph->nodeBufferLen; }
+    static void* getEdgeBufferPtr(GraphBase* graph) { return graph->relBufferPtr; }
+    static size_t getEdgeBufferLen(GraphBase* graph) { return graph->relBufferLen; }
+    static void* getLinkedEgdesLListHeadOf(GraphBase* graph, uint8_t* ref, size_t refSize);
+
+    // Resolves a graph reference to its graph instance
+
+    static GraphBase* getGraphByNodeRef(uint8_t* ref, size_t refSize);
+    static GraphBase* getGraphByEdgeRef(uint8_t* ref, size_t refSize);
+
+    static GraphBase* createTestGraph(uint64_t whichOne);
+
+    // Keeps track of all graph states
+    static std::unordered_map<uint8_t*, GraphBase*> graphs;
+}; // GraphHelper
+class LingoDBGraph : public Graph<int64_t, int64_t> {
+protected:
+    LingoDBGraph(size_t maxNodeCapacity, size_t maxRelCapacity) 
+        : Graph(maxNodeCapacity, maxRelCapacity) {}
+public:
+    node_id_t addNode() { return Graph::addNode(0); }
+    edge_id_t addEdge(node_id_t from, node_id_t to) { return Graph::addRelationship(from, to, 0, 0); }
+    void setNodeValue(node_id_t node, int64_t value) const { Graph::getNode(node)->property = value; }
+    void setEdgeValue(edge_id_t edge, int64_t value) const { Graph::getRelationship(edge)->property = value; }
+    int64_t getNodeValue(node_id_t node) const { return Graph::getNode(node)->property; }
+    int64_t  getEdgeValue(edge_id_t edge) const { return Graph::getRelationship(edge)->property; }
+    node_id_t removeNode(node_id_t node) { return Graph::removeNode(node); }
+    edge_id_t removeEdge(edge_id_t rel) { return Graph::removeRelationship(rel); }
+    size_t getNodeCount() const { return nodeCounter; }
+    size_t getEdgeCount() const { return relCounter; }
+    static LingoDBGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
+    static void destroy(LingoDBGraph* graph) { delete graph; }
+}; // LingoDBGraph
+
+} // lingodb::runtime::graph
+
+#endif // LINGODB_RUNTIME_GRAPH_GRAPH_H

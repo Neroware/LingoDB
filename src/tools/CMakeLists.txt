@@ -35,7 +35,7 @@ target_compile_definitions(sqlite-tester PRIVATE ${COMPILE_DEFS})
 # mlir-db-opt
 add_executable(mlir-db-opt mlir-opt.cpp)
 # mlir-db-opt also needs the ${LIBS} variable
-target_link_libraries(mlir-db-opt PUBLIC ${LIBS} ${COMMON_LIBS})
+target_link_libraries(mlir-db-opt PUBLIC ${LIBS} ${COMMON_LIBS} semantics)
 set_target_properties(mlir-db-opt PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_definitions(mlir-db-opt PRIVATE ${COMPILE_DEFS})
 
