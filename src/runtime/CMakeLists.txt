@@ -35,6 +35,8 @@ add_library(runtime OBJECT
         LingoDBHashIndex.cpp
         Session.cpp
         storage/LingoDBTable.cpp
+        Graph/Graph.cpp
+        Graph/PropertyGraph.cpp
 )
 set(COMPILE_DEFS "")
 if (ENABLE_GPU_BACKEND)
