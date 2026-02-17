@@ -10,8 +10,8 @@ module {
             %res = subop.create_from ["int64"] %res_table : !subop.result_table<[int64p0 : i64]> -> !subop.local_table<[int64p0 : i64], ["int64"]>
             subop.execution_group_return %res : !subop.local_table<[int64p0 : i64], ["int64"]>
         
-        } -> !subop.table<[int64n0 : i64]>
-        subop.set_result 0 %subop_result : !subop.table<[int64n0 : i64]>
+        } -> !subop.local_table<[int64p0 : i64], ["int64"]>
+        subop.set_result 0 %subop_result : !subop.local_table<[int64p0 : i64], ["int64"]>
         return
     }
 }

@@ -31,8 +31,8 @@ module {
             %res = subop.create_from ["nid", "prop"] %0 : !subop.result_table<[int64p0 : i64, int64p1 : i64]> -> !subop.local_table<[int64p0 : i64, int64p1 : i64], ["nid", "prop"]>
             subop.execution_group_return %res : !subop.local_table<[int64p0 : i64, int64p1 : i64], ["nid", "prop"]>
         
-        } -> !subop.table<[int64n0 : i64, int64n1 : i64]>
-        subop.set_result 0 %subop_result : !subop.table<[int64n0 : i64, int64n1 : i64]>
+        } -> !subop.local_table<[int64p0 : i64, int64p1 : i64], ["nid", "prop"]>
+        subop.set_result 0 %subop_result : !subop.local_table<[int64p0 : i64, int64p1 : i64], ["nid", "prop"]>
         return
     }
 }

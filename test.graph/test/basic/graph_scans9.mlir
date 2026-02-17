@@ -42,8 +42,8 @@ module {
             %res = subop.create_from ["eid", "eprop", "nid", "nprop", "ncount"] %0 : !subop.result_table<[eid_i64 : i64, eprop_i64 : i64, nid_i64 : i64, nprop_i64 : i64, ncount_index : index]> -> !subop.local_table<[eid_i64 : i64, eprop_i64 : i64, nid_i64 : i64, nprop_i64 : i64, ncount_index : index], ["eid", "eprop", "nid", "nprop", "ncount"]>
             subop.execution_group_return %res : !subop.local_table<[eid_i64 : i64, eprop_i64 : i64, nid_i64 : i64, nprop_i64 : i64, ncount_index : index], ["eid", "eprop", "nid", "nprop", "ncount"]>
         
-        } -> !subop.table<[eid_i64n : i64, eprop_i64n : i64, nid_i64n : i64, nprop_i64n : i64, ncount_indexn : index]>
-        subop.set_result 0 %subop_result : !subop.table<[eid_i64n : i64, eprop_i64n : i64, nid_i64n : i64, nprop_i64n : i64, ncount_indexn : index]>
+        } -> !subop.local_table<[eid_i64 : i64, eprop_i64 : i64, nid_i64 : i64, nprop_i64 : i64, ncount_index : index], ["eid", "eprop", "nid", "nprop", "ncount"]>
+        subop.set_result 0 %subop_result : !subop.local_table<[eid_i64 : i64, eprop_i64 : i64, nid_i64 : i64, nprop_i64 : i64, ncount_index : index], ["eid", "eprop", "nid", "nprop", "ncount"]>
         return
     }
 }

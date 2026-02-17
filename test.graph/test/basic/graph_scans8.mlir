@@ -40,8 +40,8 @@ module {
             %res = subop.create_from ["eid", "eprop", "nid", "nprop"] %0 : !subop.result_table<[int64p0 : i64, int64p1 : i64, int64p2 : i64, int64p3 : i64]> -> !subop.local_table<[int64p0 : i64, int64p1 : i64, int64p2 : i64, int64p3 : i64], ["eid", "eprop", "nid", "nprop"]>
             subop.execution_group_return %res : !subop.local_table<[int64p0 : i64, int64p1 : i64, int64p2 : i64, int64p3 : i64], ["eid", "eprop", "nid", "nprop"]>
         
-        } -> !subop.table<[int64n0 : i64, int64n1 : i64, int64n2 : i64, int64n3 : i64]>
-        subop.set_result 0 %subop_result : !subop.table<[int64n0 : i64, int64n1 : i64, int64n2 : i64, int64n3 : i64]>
+        } -> !subop.local_table<[int64p0 : i64, int64p1 : i64, int64p2 : i64, int64p3 : i64], ["eid", "eprop", "nid", "nprop"]>
+        subop.set_result 0 %subop_result : !subop.local_table<[int64p0 : i64, int64p1 : i64, int64p2 : i64, int64p3 : i64], ["eid", "eprop", "nid", "nprop"]>
         return
     }
 }
