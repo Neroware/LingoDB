@@ -93,5 +93,19 @@ void PropertyGraph::setProperty(property_id_t prop, uint64_t value) {
 BufferIterator* PropertyGraph::createPropIterator() {
     return new PropertyGraphPropertyTableIterator(*this);
 }
-
+void* PropertyGraph::getNodePropertyLListHeadOf(uint8_t* ref) {
+    auto entryRef = (PropertyGraph::NodeEntry*) ref;
+    auto g = (PropertyGraph*) GraphHelper::graphs[ref - entryRef->id * sizeof(PropertyGraph::NodeEntry)];
+    return g->getProperty(entryRef->property);
+}
+void* PropertyGraph::getEdgePropertyLListHeadOf(uint8_t* ref) {
+    auto entryRef = (PropertyGraph::RelationshipEntry*) ref;
+    auto g = (PropertyGraph*) GraphHelper::graphs[ref - entryRef->id * sizeof(PropertyGraph::RelationshipEntry)];
+    return g->getProperty(entryRef->property);
+}
+PropertyGraph* PropertyGraph::getGraphByPropertyRef(uint8_t* ref) {
+    auto entryRef = (PropertyGraph::PropertyEntry*) ref;
+    auto g = (PropertyGraph*) GraphHelper::graphs[ref - entryRef->id * sizeof(PropertyGraph::PropertyEntry)];
+    return g;
+}
 } // lingodb::runtime

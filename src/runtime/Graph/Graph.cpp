@@ -1,5 +1,7 @@
 #include "lingodb/runtime/Graph/Graph.h"
 
+#include "lingodb/runtime/Graph/PropertyGraph.h"
+
 namespace lingodb::runtime {
 
 class GraphNodeTableIterator : public BufferIterator {
@@ -53,7 +55,10 @@ GraphBase* GraphHelper::getGraphByEdgeRef(uint8_t* ref, size_t refSize) {
     return GraphHelper::graphs[(ref - rel->id * refSize)];
 }
 LingoDBGraph* LingoDBGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) {
-    return new LingoDBGraph(initialNodeCapacity, initialRelationshipCapacity);
+    auto g = new LingoDBGraph(initialNodeCapacity, initialRelationshipCapacity);
+    GraphHelper::graphs.insert({g->nodeBufferPtr, g});
+    GraphHelper::graphs.insert({g->relBufferPtr, g});
+    return g;
 }
 GraphBase* createDefaultTestGraph() {
     auto g = LingoDBGraph::create(16, 256);
@@ -98,12 +103,35 @@ GraphBase* createMichaelsPageRankGraph() {
     g->addEdge(0, 3, 5);
     return g;
 }
+PropertyGraph* createDefaultTestPropertyGraph() {
+    auto g = PropertyGraph::create(16, 256, 256);
+    for (int i = 0; i < 6; i++) {
+        g->addNode();
+    }
+    g->addEdge(0, 2);
+    g->addEdge(1, 0);
+    g->addEdge(1, 2);
+    g->addEdge(1, 4);
+    g->addEdge(2, 4);
+    g->addEdge(2, 3);
+    g->addNodeProperty(0, 0, 0, 42);
+    g->addNodeProperty(1, 11, 11, 111);
+    g->addNodeProperty(2, 22, 22, 222);
+    g->addNodeProperty(3, 33, 33, 333);
+    g->addRelationshipProperty(0, 0, 0, 4242);
+    g->addRelationshipProperty(1, 11, 11, 1111);
+    g->addRelationshipProperty(2, 22, 22, 2222);
+    g->addRelationshipProperty(3, 33, 33, 3333);
+    return g;
+}
 GraphBase* GraphHelper::createTestGraph(uint64_t whichOne) {
     GraphBase* g;
     switch (whichOne) {
         case 0: g = createDefaultTestGraph();
             break;
         case 1: g = createMichaelsPageRankGraph();
+            break;
+        case 2: g = createDefaultTestPropertyGraph();
             break;
         default: g = createDefaultTestGraph();
             break;

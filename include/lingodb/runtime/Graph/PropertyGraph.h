@@ -52,8 +52,9 @@ class PropertyGraph : public LingoDBGraph {
     void* getPropBufferPtr() const { return (void*) properties.ptr; }
     size_t getPropBufferLen() const { return propBufferSize * sizeof(PropertyEntry); }
     
-    void* getNodePropertyLListHead(void* nodeRef) const;
-    void* getEdgePropertyLListHead(void* relRef) const;
+    static void* getNodePropertyLListHeadOf(uint8_t* nodeRef);
+    static void* getEdgePropertyLListHeadOf(uint8_t* relRef);
+    static PropertyGraph* getGraphByPropertyRef(uint8_t* propRef);
 
 }; // PropertyGraph
 
