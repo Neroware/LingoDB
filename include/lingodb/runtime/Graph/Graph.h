@@ -7,200 +7,141 @@
 
 namespace lingodb::runtime {
 
-typedef int64_t node_id_t;
-typedef int64_t edge_id_t;
-typedef uint64_t relation_type_id_t;
-// Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
-// See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
+typedef uint32_t node_id_t;
+typedef uint32_t relation_id_t;
+typedef uint32_t relation_type_id_t;
+typedef uint32_t property_id_t;
+typedef uint32_t property_type_id_t;
+typedef uint32_t property_key_t;
+
 struct GraphBase {
-    uint8_t* nodeBufferPtr;
-    size_t nodeBufferLen;
-    uint8_t* relBufferPtr;
-    size_t relBufferLen;
-    struct NodeEntryBase {
+    struct NodeEntry {
         bool inUse;
-        node_id_t id;
-        edge_id_t nextRelationship;
-    }; // NodeEntryBase
-    struct RelationshipEntryBase {
+        relation_id_t nextRelId;
+    };
+    struct RelationshipEntry {
         bool inUse;
-        edge_id_t id;
         node_id_t firstNode;
         node_id_t secondNode;
-        relation_type_id_t type;
-        edge_id_t firstPrevRelation;
-        edge_id_t firstNextRelation;
-        edge_id_t secondPrevRelation;
-        edge_id_t secondNextRelation;
-    }; // RelationshipEntryBase
-}; // GraphBase
-
-template<typename T, typename U>
-class Graph : public GraphBase {
-    protected:
-    node_id_t nodeCounter = 0;
-    edge_id_t relCounter = 0;
-    struct NodeEntry : public NodeEntryBase {
-        T property;
-    }; // NodeEntry
-    struct RelationshipEntry : public RelationshipEntryBase {
-        U property;
-    }; // RelationshipEntry
+        relation_type_id_t relationshipType;
+        relation_id_t firstPrevRelId;
+        relation_id_t firstNextRelId;
+        relation_id_t secondPrevRelId;
+        relation_id_t secondNextRelId;
+    };
+    size_t nodeCounter;
+    size_t relCounter;
+    size_t propCounter;
+    GraphBase() : nodeCounter(0), relCounter(0), propCounter(0) {}
+};
+// Basic graph implementation following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
+// See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
+template<typename T, typename U, typename V = void*> 
+struct Graph : public GraphBase {
+    struct NodeEntry : GraphBase::NodeEntry {
+        T nextPropId;
+        uint8_t labels[5];
+        uint8_t extra;
+    };
+    struct RelationshipEntry : GraphBase::RelationshipEntry {
+        U nextPropId;
+        bool firstInChainMarker;
+    };
+    struct PropertyEntry {
+        bool inUse;
+        property_id_t nextProp;
+        property_id_t prevProp;
+        property_key_t key;
+        property_type_id_t type;
+        V value;
+    }; // PropertyEntry
     runtime::LegacyFixedSizedBuffer<NodeEntry> nodes;
     runtime::LegacyFixedSizedBuffer<RelationshipEntry> relationships;
+    runtime::LegacyFixedSizedBuffer<PropertyEntry> properties;
     std::vector<NodeEntry*> unusedNodeEntries;
     std::vector<RelationshipEntry*> unusedRelEntries;
-    Graph(size_t maxNodeCapacity, size_t maxRelCapacity) 
-        : nodeCounter(0), relCounter(0), nodes(maxNodeCapacity), relationships(maxRelCapacity) {
-            nodeBufferPtr = (uint8_t*) nodes.ptr;
-            relBufferPtr = (uint8_t*) relationships.ptr;
-            nodeBufferLen = relBufferLen = 0;
-    }
-    
-    node_id_t getNodeId(NodeEntry* node) const {
-        return node - nodes.ptr;
-    }
-    NodeEntry* getNode(node_id_t node) const {
-        return nodes.ptr + node;
-    }
-    edge_id_t getRelationshipId(RelationshipEntry* rel) const {
-        return rel - relationships.ptr;
-    }
-    RelationshipEntry* getRelationship(edge_id_t rel) const {
-        return relationships.ptr + rel;
-    }
-    public:
-    node_id_t addNode(T property) {
-        NodeEntry* node;
-        if (unusedNodeEntries.empty()) {
-            node = nodes.getPtr(nodeCounter++);
-            nodeBufferLen += sizeof(NodeEntry);
-        }
-        else {
-            node = unusedNodeEntries.back();
-            unusedNodeEntries.pop_back();
-        }
-        assert(!node->inUse && "should not happen");
-        node_id_t nodeId = getNodeId(node);
-        node->inUse = true;
-        node->id = nodeId;
-        node->nextRelationship = -1;
-        node->property = property;
-        return nodeId;
-    }
-    edge_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type, U property) {
-        RelationshipEntry* rel;
-        NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
-        if (unusedRelEntries.empty()) {
-            rel = relationships.getPtr(relCounter++);
-            relBufferLen += sizeof(RelationshipEntry);
-        }
-        else {
-            rel = unusedRelEntries.back();
-            unusedRelEntries.pop_back();
-        }
-        assert(!rel->inUse && "should not happen");
-        edge_id_t relId = getRelationshipId(rel);
-        rel->inUse = true;
-        rel->id = relId;
-        rel->firstNode = from;
-        rel->secondNode = to;
-        rel->type = type;
-        rel->firstNextRelation = rel->firstPrevRelation = rel->secondNextRelation = rel->secondPrevRelation = -1;
-        rel->property = property;
-        if (fromNode->nextRelationship >= 0) {
-            RelationshipEntry* head = getRelationship(fromNode->nextRelationship);
-            if (head->firstNode == from) {
-                head->firstPrevRelation = relId;
-                rel->firstNextRelation = head->id;   
-            }
-            else {
-                head->secondPrevRelation = relId;
-                rel->firstNextRelation = head->id;
-            }
-        }
-        fromNode->nextRelationship = relId;
-        if (from != to) {
-            if (toNode->nextRelationship >= 0) {
-                RelationshipEntry* head = getRelationship(toNode->nextRelationship);
-                if (head->firstNode == to) {
-                    head->firstPrevRelation = relId;
-                    rel->secondNextRelation = head->id;   
-                }
-                else {
-                    head->secondPrevRelation = relId;
-                    rel->secondNextRelation = head->id;
-                }
-            }
-            toNode->nextRelationship = relId;
-        }
-
-        return relId;
-    }
-    edge_id_t addEdge(node_id_t from, node_id_t to, U property) {
-        return addRelationship(from, to, 0, property);
-    }
-    node_id_t removeNode(node_id_t node) {
-        assert(false && "not impelemented"); // TODO implement
-    }
-    edge_id_t removeRelationship(edge_id_t rel) {
-        assert(false && "not impelemented"); // TODO implement
-    }
-    void setNodeValue(node_id_t node, T value) const { 
-        getNode(node)->property = value;
-    }
-    void setEdgeValue(edge_id_t edge, U value) const { 
-        getRelationship(edge)->property = value; 
-    }
-    T getNodeValue(node_id_t node) const { 
-        return getNode(node)->property; 
-    }
-    U getEdgeValue(edge_id_t edge) const { 
-        return getRelationship(edge)->property; 
-    }
-    static Graph<T, U>* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
-        return new Graph(initialNodeCapacity, initialRelationshipCapacity);
-    }
-    static void destroy(Graph<T, U>* graph) { delete graph; }
+    std::vector<PropertyEntry*> unusedPropEntries;
+    Graph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
+        : GraphBase(), nodes(maxNodeCapacity), relationships(maxRelCapacity), 
+        properties(maxPropCapacity) {}
 }; // Graph
-struct GraphHelper {
-    static BufferIterator* createNodeIterator(GraphBase* graph);
-    static BufferIterator* createEdgeIterator(GraphBase* graph);
-    static void* getNodeBufferPtr(GraphBase* graph) { return graph->nodeBufferPtr; }
-    static size_t getNodeBufferLen(GraphBase* graph) { return graph->nodeBufferLen; }
-    static void* getEdgeBufferPtr(GraphBase* graph) { return graph->relBufferPtr; }
-    static size_t getEdgeBufferLen(GraphBase* graph) { return graph->relBufferLen; }
-    static void* getLinkedEgdesLListHeadOf(GraphBase* graph, uint8_t* ref, size_t refSize);
-
-    // Resolves a graph reference to its graph instance
-
-    static GraphBase* getGraphByNodeRef(uint8_t* ref, size_t refSize);
-    static GraphBase* getGraphByEdgeRef(uint8_t* ref, size_t refSize);
-
-    static GraphBase* createTestGraph(uint64_t whichOne);
-
-    // Keeps track of all graph states
-    static std::unordered_map<uint8_t*, GraphBase*> graphs;
-}; // GraphHelper
-class LingoDBGraph : public Graph<int64_t, int64_t> {
-protected:
-    LingoDBGraph(size_t maxNodeCapacity, size_t maxRelCapacity) 
-        : Graph(maxNodeCapacity, maxRelCapacity) {}
+// A basic graph without a property table using i64 as property value
+class GengoDBGraph : public Graph<uint64_t, uint64_t> {
+private:
+    node_id_t getNodeId(NodeEntry* node) const;
+    NodeEntry* getNode(node_id_t node) const;
+    relation_id_t getRelationshipId(RelationshipEntry* rel) const;
+    RelationshipEntry* getRelationship(relation_id_t rel) const;
+    GengoDBGraph(size_t maxNodeCapacity, size_t maxRelCapacity)
+        : Graph(maxNodeCapacity, maxRelCapacity, 1) {}
 public:
-    node_id_t addNode() { return Graph::addNode(0); }
-    edge_id_t addEdge(node_id_t from, node_id_t to) { return Graph::addRelationship(from, to, 0, 0); }
-    void setNodeValue(node_id_t node, int64_t value) const { Graph::getNode(node)->property = value; }
-    void setEdgeValue(edge_id_t edge, int64_t value) const { Graph::getRelationship(edge)->property = value; }
-    int64_t getNodeValue(node_id_t node) const { return Graph::getNode(node)->property; }
-    int64_t  getEdgeValue(edge_id_t edge) const { return Graph::getRelationship(edge)->property; }
-    node_id_t removeNode(node_id_t node) { return Graph::removeNode(node); }
-    edge_id_t removeEdge(edge_id_t rel) { return Graph::removeRelationship(rel); }
+    node_id_t addNode();
+    relation_id_t addRelationship(node_id_t from, node_id_t to);
+    node_id_t removeNode(node_id_t node);
+    relation_id_t removeRelationship(relation_id_t rel);
+    void setNodeValue(node_id_t node, uint64_t value) const;
+    void setRelationshipValue(relation_id_t edge, uint64_t value) const;
+    uint64_t getNodeValue(node_id_t node) const;
+    uint64_t getRelationshipValue(relation_id_t edge) const;
     size_t getNodeCount() const { return nodeCounter; }
-    size_t getEdgeCount() const { return relCounter; }
-    static LingoDBGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
-    static void destroy(LingoDBGraph* graph) { delete graph; }
-}; // LingoDBGraph
+    size_t getRelCount() const { return relCounter; }
+    static GengoDBGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
+    static void destroy(GengoDBGraph* graph) { delete graph; }
+}; // GengoDBGraph
+struct GraphStorageHelper {
+    struct GraphStorageData {
+        GraphBase* graphPtr;
+        size_t nodeEntrySize;
+        size_t relEntrySize;
+        size_t propEntrySize;
+        uint8_t* nodeBufferPtr;
+        uint8_t* relBufferPtr;
+        uint8_t* propBufferPtr;
+        size_t nodeBufferSize;
+        size_t relBufferSize;
+        size_t propBufferSize;
+    };
+    static std::unordered_map<GraphBase*, GraphStorageData> graphs;
+    template<typename T, typename U, typename V>
+    static void addGraph(Graph<T, U, V>* graph, size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity){
+        GraphStorageData graphData {
+            (GraphBase*) graph,
+            sizeof(typename Graph<T, U, V>::NodeEntry),
+            sizeof(typename Graph<T, U, V>::RelationshipEntry),
+            sizeof(typename Graph<T, U, V>::PropertyEntry),
+            (uint8_t*) graph->nodes.ptr,
+            (uint8_t*) graph->relationships.ptr,
+            (uint8_t*) graph->properties.ptr,
+            maxNodeCapacity * sizeof(typename Graph<T, U, V>::NodeEntry),
+            maxRelCapacity * sizeof(typename Graph<T, U, V>::RelationshipEntry),
+            maxPropCapacity * sizeof(typename Graph<T, U, V>::PropertyEntry)
+        };
+        graphs[(GraphBase*) graph] = graphData;
+    }
+    // Based on an address in memory, determine the graph storage
+    static GraphBase* getGraphByRef(uint8_t* ref) {
+        for (const auto& graphData : graphs) {
+            if ((graphData.second.nodeBufferPtr <= ref && ref < graphData.second.nodeBufferPtr + graphData.second.nodeBufferSize)
+                || (graphData.second.relBufferPtr <= ref && ref < graphData.second.relBufferPtr + graphData.second.relBufferSize)
+                || (graphData.second.propBufferPtr <= ref && ref < graphData.second.propBufferPtr + graphData.second.propBufferSize)){
+                    return graphData.first;
+            }
+        }
+        return nullptr;
+    }
+    static uint8_t* getNodeBufferPtr(GraphBase* graph) { return graphs[graph].nodeBufferPtr; }
+    static uint8_t* getRelBufferPtr(GraphBase* graph) { return graphs[graph].relBufferPtr; }
+    static uint8_t* getPropBufferPtr(GraphBase* graph) { return graphs[graph].propBufferPtr; }
+    static size_t getNodeBufferLen(GraphBase* graph) { return graph->nodeCounter * graphs[graph].nodeEntrySize; }
+    static size_t getRelBufferLen(GraphBase* graph) { return graph->relCounter * graphs[graph].relEntrySize; }
+    static size_t getPropBufferLen(GraphBase* graph) { return graph->propCounter * graphs[graph].propEntrySize; }
+    static BufferIterator* createNodeIterator(GraphBase* graph);
+    static BufferIterator* createRelIterator(GraphBase* graph);
+    static BufferIterator* createPropIterator(GraphBase* graph);
+    static uint8_t* getRelationshipLListHead(GraphBase* graph, uint8_t* node);
+    static GraphBase* createTestGraph(uint64_t whichOne);
+}; // GraphStorageHelper
 
-} // lingodb::runtime::graph
+}; // namespace lingodb::runtime
 
 #endif // LINGODB_RUNTIME_GRAPH_GRAPH_H
