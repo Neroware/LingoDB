@@ -7,10 +7,10 @@
 
 namespace lingodb::runtime {
 
-typedef uint32_t node_id_t;
-typedef uint32_t relation_id_t;
+typedef int32_t node_id_t;
+typedef int32_t relation_id_t;
 typedef uint32_t relation_type_id_t;
-typedef uint32_t property_id_t;
+typedef int32_t property_id_t;
 typedef uint32_t property_type_id_t;
 typedef uint32_t property_key_t;
 
@@ -101,7 +101,7 @@ struct GraphStorageHelper {
         size_t relBufferSize;
         size_t propBufferSize;
     };
-    static std::unordered_map<GraphBase*, GraphStorageData> graphs;
+    static std::vector<GraphStorageData> graphs;
     template<typename T, typename U, typename V>
     static void addGraph(Graph<T, U, V>* graph, size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity){
         GraphStorageData graphData {
@@ -116,30 +116,35 @@ struct GraphStorageHelper {
             maxRelCapacity * sizeof(typename Graph<T, U, V>::RelationshipEntry),
             maxPropCapacity * sizeof(typename Graph<T, U, V>::PropertyEntry)
         };
-        graphs[(GraphBase*) graph] = graphData;
+        graphs.push_back(graphData);
     }
+    static uint8_t* getNodeBufferPtr(uint8_t* ref);
+    static uint8_t* getRelBufferPtr(uint8_t* ref);
+    static uint8_t* getPropBufferPtr(uint8_t* ref);
+    static size_t getNodeBufferLen(uint8_t* ref);
+    static size_t getRelBufferLen(uint8_t* ref);
+    static size_t getPropBufferLen(uint8_t* ref);
+    static BufferIterator* createNodeIterator(uint8_t* ref);
+    static BufferIterator* createRelIterator(uint8_t* ref);
+    static BufferIterator* createPropIterator(uint8_t* ref);
+    static node_id_t getNodeId(uint8_t* node);
+    static relation_id_t getRelationshipId(uint8_t* rel);
+    static property_id_t getPropId(uint8_t* prop);
+    static uint8_t* getRelationshipLListHeadOf(uint8_t* node);
+    static GraphBase* createTestGraph(uint64_t whichOne);
+protected:
     // Based on an address in memory, determine the graph storage
-    static GraphBase* getGraphByRef(uint8_t* ref) {
+    static const GraphStorageData& getGraphInfo(uint8_t* ref) {
         for (const auto& graphData : graphs) {
-            if ((graphData.second.nodeBufferPtr <= ref && ref < graphData.second.nodeBufferPtr + graphData.second.nodeBufferSize)
-                || (graphData.second.relBufferPtr <= ref && ref < graphData.second.relBufferPtr + graphData.second.relBufferSize)
-                || (graphData.second.propBufferPtr <= ref && ref < graphData.second.propBufferPtr + graphData.second.propBufferSize)){
-                    return graphData.first;
+            if (((uint8_t*) graphData.graphPtr == ref)
+                || (graphData.nodeBufferPtr <= ref && ref < graphData.nodeBufferPtr + graphData.nodeBufferSize)
+                || (graphData.relBufferPtr <= ref && ref < graphData.relBufferPtr + graphData.relBufferSize)
+                || (graphData.propBufferPtr <= ref && ref < graphData.propBufferPtr + graphData.propBufferSize)) {
+                    return graphData;
             }
         }
-        return nullptr;
+        assert(false && "should not happen");
     }
-    static uint8_t* getNodeBufferPtr(GraphBase* graph) { return graphs[graph].nodeBufferPtr; }
-    static uint8_t* getRelBufferPtr(GraphBase* graph) { return graphs[graph].relBufferPtr; }
-    static uint8_t* getPropBufferPtr(GraphBase* graph) { return graphs[graph].propBufferPtr; }
-    static size_t getNodeBufferLen(GraphBase* graph) { return graph->nodeCounter * graphs[graph].nodeEntrySize; }
-    static size_t getRelBufferLen(GraphBase* graph) { return graph->relCounter * graphs[graph].relEntrySize; }
-    static size_t getPropBufferLen(GraphBase* graph) { return graph->propCounter * graphs[graph].propEntrySize; }
-    static BufferIterator* createNodeIterator(GraphBase* graph);
-    static BufferIterator* createRelIterator(GraphBase* graph);
-    static BufferIterator* createPropIterator(GraphBase* graph);
-    static uint8_t* getRelationshipLListHead(GraphBase* graph, uint8_t* node);
-    static GraphBase* createTestGraph(uint64_t whichOne);
 }; // GraphStorageHelper
 
 }; // namespace lingodb::runtime

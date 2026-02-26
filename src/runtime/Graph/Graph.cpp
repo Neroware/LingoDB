@@ -105,7 +105,7 @@ GengoDBGraph* GengoDBGraph::create(size_t initialNodeCapacity, size_t initialRel
     GraphStorageHelper::addGraph(g, initialNodeCapacity, initialRelationshipCapacity, 1);
     return g;
 }
-std::unordered_map<GraphBase*, GraphStorageHelper::GraphStorageData> GraphStorageHelper::graphs;
+std::vector<GraphStorageHelper::GraphStorageData> GraphStorageHelper::graphs;
 class GraphTableIterator : public BufferIterator {
 private:
     size_t entrySize;
@@ -124,20 +124,53 @@ public:
         forEachChunk(buffer, contextPtr);
     }
 }; // GraphTableIterator
-BufferIterator* GraphStorageHelper::createNodeIterator(GraphBase* graph) {
-    GraphStorageData graphData = graphs[graph];
-    return new GraphTableIterator(graphData.nodeEntrySize, graph->nodeCounter, graphData.nodeBufferPtr);
+uint8_t* GraphStorageHelper::getNodeBufferPtr(uint8_t* ref) {
+    return getGraphInfo(ref).nodeBufferPtr;
 }
-BufferIterator* GraphStorageHelper::createRelIterator(GraphBase* graph) {
-    GraphStorageData graphData = graphs[graph];
-    return new GraphTableIterator(graphData.relEntrySize, graph->relCounter, graphData.relBufferPtr);
+uint8_t* GraphStorageHelper::getRelBufferPtr(uint8_t* ref) {
+    return getGraphInfo(ref).relBufferPtr;
 }
-BufferIterator* GraphStorageHelper::createPropIterator(GraphBase* graph) {
-    GraphStorageData graphData = graphs[graph];
-    return new GraphTableIterator(graphData.propEntrySize, graph->propCounter, graphData.propBufferPtr);
+uint8_t* GraphStorageHelper::getPropBufferPtr(uint8_t* ref) {
+    return getGraphInfo(ref).propBufferPtr;
 }
-uint8_t* GraphStorageHelper::getRelationshipLListHead(GraphBase* graph, uint8_t* ref) {
-    GraphStorageData graphData = graphs[graph];
+size_t GraphStorageHelper::getNodeBufferLen(uint8_t* ref) {
+    const auto& graph = getGraphInfo(ref);
+    return graph.graphPtr->nodeCounter * graph.nodeEntrySize;
+}
+size_t GraphStorageHelper::getRelBufferLen(uint8_t* ref) {
+    const auto& graph = getGraphInfo(ref);
+    return graph.graphPtr->relCounter * graph.relEntrySize;
+}
+size_t GraphStorageHelper::getPropBufferLen(uint8_t* ref) {
+    const auto& graph = getGraphInfo(ref);
+    return graph.graphPtr->propCounter * graph.propEntrySize;
+}
+BufferIterator* GraphStorageHelper::createNodeIterator(uint8_t* ref) {
+    GraphStorageData graphData = getGraphInfo(ref);
+    return new GraphTableIterator(graphData.nodeEntrySize, graphData.graphPtr->nodeCounter, graphData.nodeBufferPtr);
+}
+BufferIterator* GraphStorageHelper::createRelIterator(uint8_t* ref) {
+    GraphStorageData graphData = getGraphInfo(ref);
+    return new GraphTableIterator(graphData.relEntrySize, graphData.graphPtr->relCounter, graphData.relBufferPtr);
+}
+BufferIterator* GraphStorageHelper::createPropIterator(uint8_t* ref) {
+    GraphStorageData graphData = getGraphInfo(ref);
+    return new GraphTableIterator(graphData.propEntrySize, graphData.graphPtr->propCounter, graphData.propBufferPtr);
+}
+node_id_t GraphStorageHelper::getNodeId(uint8_t* node) {
+    const auto& graphData = getGraphInfo(node);
+    return (node_id_t) ((node - graphData.nodeBufferPtr) / graphData.nodeEntrySize);
+}
+relation_id_t GraphStorageHelper::getRelationshipId(uint8_t* rel) {
+    const auto& graphData = getGraphInfo(rel);
+    return (relation_id_t) ((rel - graphData.relBufferPtr) / graphData.relEntrySize);
+}
+property_id_t GraphStorageHelper::getPropId(uint8_t* prop) {
+    const auto& graphData = getGraphInfo(prop);
+    return (property_id_t) ((prop - graphData.propBufferPtr) / graphData.propEntrySize);
+}
+uint8_t* GraphStorageHelper::getRelationshipLListHeadOf(uint8_t* ref) {
+    GraphStorageData graphData = getGraphInfo(ref);
     auto node = (GraphBase::NodeEntry*) ref;
     return graphData.nodeBufferPtr + node->nextRelId * graphData.relEntrySize;
 }

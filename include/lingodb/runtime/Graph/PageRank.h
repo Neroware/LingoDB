@@ -11,7 +11,7 @@ struct PageRankGraphStorage {
         double nextRank;
         int l;
     };
-};
+}; // PageRankGraphStorage
 // A basic graph without a property table for the presented PageRank algorithm
 class PageRankGraph : public PageRankGraphStorage, public Graph<PageRankGraphStorage::Data, void*> {
 private:

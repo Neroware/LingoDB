@@ -153,13 +153,13 @@ PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialR
     return g;
 }
 
-uint8_t* PropertyGraphStorageHelper::getNodePropertyLListHead(PropertyGraph* graph, uint8_t* ref) {
-    auto graphData = GraphStorageHelper::graphs[graph];
+uint8_t* PropertyGraphStorageHelper::getNodePropertyLListHeadOf(uint8_t* ref) {
+    const auto& graphData = PropertyGraphStorageHelper::getGraphInfo(ref);
     auto node = (PropertyGraph::NodeEntry*) ref;
     return graphData.propBufferPtr + node->nextPropId * graphData.relEntrySize;
 }
-uint8_t* PropertyGraphStorageHelper::getRelPropertyLListHead(PropertyGraph* graph, uint8_t* ref) {
-    auto graphData = GraphStorageHelper::graphs[graph];
+uint8_t* PropertyGraphStorageHelper::getRelPropertyLListHeadOf(uint8_t* ref) {
+    const auto& graphData = PropertyGraphStorageHelper::getGraphInfo(ref);
     auto rel = (PropertyGraph::RelationshipEntry*) ref;
     return graphData.propBufferPtr + rel->nextPropId * graphData.relEntrySize;
 }

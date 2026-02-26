@@ -32,9 +32,9 @@ public:
     static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity);
     static void destroy(PropertyGraph* graph) { delete graph; }
 }; // PropertyGraph
-struct PropertyGraphStorageHelper {
-    static uint8_t* getNodePropertyLListHead(PropertyGraph* graph, uint8_t* nodeRef);
-    static uint8_t* getRelPropertyLListHead(PropertyGraph* graph, uint8_t* relRef);
+struct PropertyGraphStorageHelper : public GraphStorageHelper {
+    static uint8_t* getNodePropertyLListHeadOf(uint8_t* nodeRef);
+    static uint8_t* getRelPropertyLListHeadOf(uint8_t* relRef);
 }; // PropertyGraphStorageHelper
 
 } // lingodb::runtime
