@@ -4780,163 +4780,163 @@ class EdgeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
    }
 };
 
-// class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
-//    public:
-//    using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+class NodeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
 
-//    LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
-//       auto refType = scatterOp.getRef().getColumn().type;
-//       auto referenceType = mlir::dyn_cast_or_null<graph::NodeRefType>(refType);
-//       if (!referenceType) { return failure(); }
-//       auto ctxt = scatterOp.getContext();
-//       auto loc = scatterOp.getLoc();
-//       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
-//       if (!checkAtomicStore(scatterOp)) return failure();
-//       auto propertyMembers = referenceType.getPropertyMembers();
-//       EntryStorageHelper storageHelper(scatterOp, propertyMembers, false, typeConverter);
-//       auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
-//       auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-//       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
-//       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
-//       for (auto x : scatterOp.getMapping().getMapping()) {
-//          values.set(x.first, mapping.resolve(scatterOp, x.second));
-//       }
-//       values.store();
-//       rewriter.eraseOp(scatterOp);
-//       return success();
-//    }
-// };
+   LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto refType = scatterOp.getRef().getColumn().type;
+      auto referenceType = mlir::dyn_cast_or_null<graph::NodeRefType>(refType);
+      if (!referenceType) { return failure(); }
+      auto ctxt = scatterOp.getContext();
+      auto loc = scatterOp.getLoc();
+      auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
+      if (!checkAtomicStore(scatterOp)) return failure();
+      auto propertyMembers = referenceType.getPropertyMembers();
+      EntryStorageHelper storageHelper(scatterOp, propertyMembers, false, typeConverter);
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto propertyType = nodeEntryType.getTypes()[2];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, 2);
+      auto values = storageHelper.getValueMap(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping().getMapping()) {
+         values.set(x.first, mapping.resolve(scatterOp, x.second));
+      }
+      values.store();
+      rewriter.eraseOp(scatterOp);
+      return success();
+   }
+};
 
-// class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
-//    public:
-//    using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+class EdgeRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
 
-//    LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
-//       auto refType = scatterOp.getRef().getColumn().type;
-//       auto referenceType = mlir::dyn_cast_or_null<graph::EdgeRefType>(refType);
-//       if (!referenceType) { return failure(); }
-//       auto ctxt = scatterOp.getContext();
-//       auto loc = scatterOp.getLoc();
-//       auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
-//       if (!checkAtomicStore(scatterOp)) return failure();
-//       auto writtenMembers = scatterOp.getWrittenMembers();
-//       EntryStorageHelper storageHelper(scatterOp, referenceType.getPropertyMembers(), false, typeConverter);
-//       auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
-//       auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
-//       auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, edgeEntryType.size() - 1);
-//       auto values = storageHelper.getValueMap(propRef, rewriter, loc);
-//       for (auto x : scatterOp.getMapping().getMapping()) {
-//          values.set(x.first, mapping.resolve(scatterOp, x.second));
-//       }
-//       values.store();
-//       rewriter.eraseOp(scatterOp);
-//       return success();
-//    }
-// };
+   LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto refType = scatterOp.getRef().getColumn().type;
+      auto referenceType = mlir::dyn_cast_or_null<graph::EdgeRefType>(refType);
+      if (!referenceType) { return failure(); }
+      auto ctxt = scatterOp.getContext();
+      auto loc = scatterOp.getLoc();
+      auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
+      if (!checkAtomicStore(scatterOp)) return failure();
+      auto writtenMembers = scatterOp.getWrittenMembers();
+      EntryStorageHelper storageHelper(scatterOp, referenceType.getPropertyMembers(), false, typeConverter);
+      auto edgeEntryType = getEdgeEntryType(referenceType, *typeConverter);
+      auto propertyType = edgeEntryType.getTypes()[8];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, 8);
+      auto values = storageHelper.getValueMap(propRef, rewriter, loc);
+      for (auto x : scatterOp.getMapping().getMapping()) {
+         values.set(x.first, mapping.resolve(scatterOp, x.second));
+      }
+      values.store();
+      rewriter.eraseOp(scatterOp);
+      return success();
+   }
+};
 
-// class ReduceGraphRefLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ReduceOp> {
-//    public:
-//    using SubOpTupleStreamConsumerConversionPattern<subop::ReduceOp>::SubOpTupleStreamConsumerConversionPattern;
+class ReduceGraphRefLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ReduceOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ReduceOp>::SubOpTupleStreamConsumerConversionPattern;
 
-//    LogicalResult matchAndRewrite(subop::ReduceOp reduceOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
-//       if (reduceOp->hasAttr("atomic")) {
-//          return mlir::failure();
-//       }
-//       mlir::Value ref = mapping.resolve(reduceOp, reduceOp.getRef());
-//       StateMembersAttr propertyMembers;
-//       bool hasLock = false;
-//       auto nodeRefType = mlir::dyn_cast_or_null<graph::NodeRefType>(reduceOp.getRef().getColumn().type);
-//       if (nodeRefType) {
-//          auto nodeEntryType = getNodeEntryType(nodeRefType, *typeConverter);
-//          auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-//          ref = rewriter.create<util::TupleElementPtrOp>(reduceOp->getLoc(), util::RefType::get(reduceOp->getContext(), propertyType), ref, nodeEntryType.size() - 1);
-//          propertyMembers = nodeRefType.getPropertyMembers();
-//          hasLock = nodeRefType.hasLock();
-//       }
-//       auto edgeRefType = mlir::dyn_cast_or_null<graph::EdgeRefType>(reduceOp.getRef().getColumn().type);
-//       if (edgeRefType) {
-//          auto edgeEntryType = getEdgeEntryType(edgeRefType, *typeConverter);
-//          auto propertyType = edgeEntryType.getTypes()[edgeEntryType.size() - 1];
-//          ref = rewriter.create<util::TupleElementPtrOp>(reduceOp->getLoc(), util::RefType::get(reduceOp->getContext(), propertyType), ref, edgeEntryType.size() - 1);
-//          propertyMembers = edgeRefType.getPropertyMembers();
-//          hasLock = edgeRefType.hasLock();
-//       }
-//       if (!nodeRefType && !edgeRefType) return failure();
-//       EntryStorageHelper storageHelper(reduceOp, propertyMembers, hasLock, typeConverter);
-//       auto values = storageHelper.getValueMap(ref, rewriter, reduceOp->getLoc());
-//       std::vector<mlir::Value> arguments;
-//       for (auto attr : reduceOp.getColumns()) {
-//          mlir::Value arg = mapping.resolve(reduceOp, mlir::cast<tuples::ColumnRefAttr>(attr));
-//          if (arg.getType() != mlir::cast<tuples::ColumnRefAttr>(attr).getColumn().type) {
-//             arg = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), mlir::cast<tuples::ColumnRefAttr>(attr).getColumn().type, arg).getResult(0);
-//          }
-//          arguments.push_back(arg);
-//       }
-//       for (auto member : reduceOp.getMembers()) {
-//          mlir::Value arg = values.get(mlir::cast<subop::MemberAttr>(member).getMember());
-//          if (arg.getType() != reduceOp.getRegion().getArgument(arguments.size()).getType()) {
-//             arg = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), reduceOp.getRegion().getArgument(arguments.size()).getType(), arg).getResult(0);
-//          }
-//          arguments.push_back(arg);
-//       }
+   LogicalResult matchAndRewrite(subop::ReduceOp reduceOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      if (reduceOp->hasAttr("atomic")) {
+         return mlir::failure();
+      }
+      mlir::Value ref = mapping.resolve(reduceOp, reduceOp.getRef());
+      StateMembersAttr propertyMembers;
+      bool hasLock = false;
+      auto nodeRefType = mlir::dyn_cast_or_null<graph::NodeRefType>(reduceOp.getRef().getColumn().type);
+      if (nodeRefType) {
+         auto nodeEntryType = getNodeEntryType(nodeRefType, *typeConverter);
+         auto propertyType = nodeEntryType.getTypes()[2];
+         ref = rewriter.create<util::TupleElementPtrOp>(reduceOp->getLoc(), util::RefType::get(reduceOp->getContext(), propertyType), ref, 2);
+         propertyMembers = nodeRefType.getPropertyMembers();
+         hasLock = nodeRefType.hasLock();
+      }
+      auto edgeRefType = mlir::dyn_cast_or_null<graph::EdgeRefType>(reduceOp.getRef().getColumn().type);
+      if (edgeRefType) {
+         auto edgeEntryType = getEdgeEntryType(edgeRefType, *typeConverter);
+         auto propertyType = edgeEntryType.getTypes()[8];
+         ref = rewriter.create<util::TupleElementPtrOp>(reduceOp->getLoc(), util::RefType::get(reduceOp->getContext(), propertyType), ref, 8);
+         propertyMembers = edgeRefType.getPropertyMembers();
+         hasLock = edgeRefType.hasLock();
+      }
+      if (!nodeRefType && !edgeRefType) return failure();
+      EntryStorageHelper storageHelper(reduceOp, propertyMembers, hasLock, typeConverter);
+      auto values = storageHelper.getValueMap(ref, rewriter, reduceOp->getLoc());
+      std::vector<mlir::Value> arguments;
+      for (auto attr : reduceOp.getColumns()) {
+         mlir::Value arg = mapping.resolve(reduceOp, mlir::cast<tuples::ColumnRefAttr>(attr));
+         if (arg.getType() != mlir::cast<tuples::ColumnRefAttr>(attr).getColumn().type) {
+            arg = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), mlir::cast<tuples::ColumnRefAttr>(attr).getColumn().type, arg).getResult(0);
+         }
+         arguments.push_back(arg);
+      }
+      for (auto member : reduceOp.getMembers()) {
+         mlir::Value arg = values.get(mlir::cast<subop::MemberAttr>(member).getMember());
+         if (arg.getType() != reduceOp.getRegion().getArgument(arguments.size()).getType()) {
+            arg = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), reduceOp.getRegion().getArgument(arguments.size()).getType(), arg).getResult(0);
+         }
+         arguments.push_back(arg);
+      }
 
-//       rewriter.inlineBlock<tuples::ReturnOpAdaptor>(&reduceOp.getRegion().front(), arguments, [&](tuples::ReturnOpAdaptor adaptor) {
-//          for (size_t i = 0; i < reduceOp.getMembers().size(); i++) {
-//             auto member = mlir::cast<subop::MemberAttr>(reduceOp.getMembers()[i]).getMember();
-//             auto& memberVal = values.get(member);
-//             auto updatedVal = adaptor.getResults()[i];
-//             if (updatedVal.getType() != memberVal.getType()) {
-//                updatedVal = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), memberVal.getType(), updatedVal).getResult(0);
-//             }
-//             memberVal = updatedVal;
-//          }
-//          values.store();
-//          rewriter.eraseOp(reduceOp);
-//       });
+      rewriter.inlineBlock<tuples::ReturnOpAdaptor>(&reduceOp.getRegion().front(), arguments, [&](tuples::ReturnOpAdaptor adaptor) {
+         for (size_t i = 0; i < reduceOp.getMembers().size(); i++) {
+            auto member = mlir::cast<subop::MemberAttr>(reduceOp.getMembers()[i]).getMember();
+            auto& memberVal = values.get(member);
+            auto updatedVal = adaptor.getResults()[i];
+            if (updatedVal.getType() != memberVal.getType()) {
+               updatedVal = rewriter.create<mlir::UnrealizedConversionCastOp>(reduceOp->getLoc(), memberVal.getType(), updatedVal).getResult(0);
+            }
+            memberVal = updatedVal;
+         }
+         values.store();
+         rewriter.eraseOp(reduceOp);
+      });
 
-//       return success();
-//    }
-// };
+      return success();
+   }
+};
 
-// //PropertyGraph
+//PropertyGraph
 
-// class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp> {
-//    public:
-//    using SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp>::SubOpTupleStreamConsumerConversionPattern;
-//    LogicalResult matchAndRewrite(graph::NodeCountOp nodeCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
-//       auto loc = nodeCountOp.getLoc();
-//       auto ctxt = nodeCountOp.getContext();
-//       auto graphPtr = adaptor.getGraph();
-//       auto nodeBufLenI64 = rt::LingoDBGraph::getNodeCount(rewriter, loc)({graphPtr})[0];
-//       auto nodeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
-//       llvm::SmallVector<mlir::Attribute, 2> columns;
-//       llvm::SmallVector<mlir::Value, 2> columnValues;
-//       columns.append({nodeCountOp.getRef()});
-//       columnValues.append({nodeBufLen});
-//       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
-//       rewriter.replaceTupleStream(nodeCountOp, mapping);
-//       return success();
-//    }
-// };
+class NodeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<graph::NodeCountOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::NodeCountOp nodeCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = nodeCountOp.getLoc();
+      auto ctxt = nodeCountOp.getContext();
+      auto graphPtr = adaptor.getGraph();
+      auto nodeBufLenI64 = rt::GraphStorageHelper::getNodeCount(rewriter, loc)({graphPtr})[0];
+      auto nodeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), nodeBufLenI64);
+      llvm::SmallVector<mlir::Attribute, 2> columns;
+      llvm::SmallVector<mlir::Value, 2> columnValues;
+      columns.append({nodeCountOp.getRef()});
+      columnValues.append({nodeBufLen});
+      mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
+      rewriter.replaceTupleStream(nodeCountOp, mapping);
+      return success();
+   }
+};
 
-// class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp> {
-//    public:
-//    using SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp>::SubOpTupleStreamConsumerConversionPattern;
-//    LogicalResult matchAndRewrite(graph::EdgeCountOp relCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
-//       auto loc = relCountOp.getLoc();
-//       auto ctxt = relCountOp.getContext();
-//       auto graphPtr = adaptor.getGraph();
-//       auto edgeBufLenI64 = rt::LingoDBGraph::getEdgeCount(rewriter, loc)({graphPtr})[0];
-//       auto edgeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
-//       llvm::SmallVector<mlir::Attribute, 2> columns;
-//       llvm::SmallVector<mlir::Value, 2> columnValues;
-//       columns.append({relCountOp.getRef()});
-//       columnValues.append({edgeBufLen});
-//       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
-//       rewriter.replaceTupleStream(relCountOp, mapping);
-//       return success();
-//    }
-// };
+class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<graph::EdgeCountOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::EdgeCountOp relCountOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = relCountOp.getLoc();
+      auto ctxt = relCountOp.getContext();
+      auto graphPtr = adaptor.getGraph();
+      auto edgeBufLenI64 = rt::GraphStorageHelper::getRelationshipCount(rewriter, loc)({graphPtr})[0];
+      auto edgeBufLen = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), edgeBufLenI64);
+      llvm::SmallVector<mlir::Attribute, 2> columns;
+      llvm::SmallVector<mlir::Value, 2> columnValues;
+      columns.append({relCountOp.getRef()});
+      columnValues.append({edgeBufLen});
+      mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
+      rewriter.replaceTupleStream(relCountOp, mapping);
+      return success();
+   }
+};
 
 // class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropertySetOp> {
 //    public:
@@ -5222,12 +5222,12 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<ScanEdgeSetLowering>(typeConverter, ctxt);
    rewriter.insertPattern<NodeRefGatherOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeRefGatherOpLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<NodeRefScatterOpLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<EdgeRefScatterOpLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<ReduceGraphRefLowering>(typeConverter, ctxt);
-   // //PropertyGraph
+   rewriter.insertPattern<NodeRefScatterOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<EdgeRefScatterOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<ReduceGraphRefLowering>(typeConverter, ctxt);
+   //PropertyGraph
    // rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
    // rewriter.insertPattern<TypedPropertyRefGatherOpLowering>(typeConverter, ctxt);
 

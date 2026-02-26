@@ -118,6 +118,9 @@ struct GraphStorageHelper {
         };
         graphs.push_back(graphData);
     }
+    static size_t getNodeCount(GraphBase* g) { return g->nodeCounter; }
+    static size_t getRelationshipCount(GraphBase* g) { return g->relCounter; }
+    static size_t getPropertyCount(GraphBase* g) { return g->propCounter; }
     static uint8_t* getNodeBufferPtr(uint8_t* ref);
     static uint8_t* getRelBufferPtr(uint8_t* ref);
     static uint8_t* getPropBufferPtr(uint8_t* ref);
