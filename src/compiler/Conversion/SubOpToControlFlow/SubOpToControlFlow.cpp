@@ -4672,31 +4672,32 @@ class NodeRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern
          columns.append({columnDef});
          columnValues.append({nodeId});
       });
-      // auto processEdgeSetMembers = [&](size_t i, const Member& member){
-      //    auto columnDef = gatherOp.getMapping().getColumnDef(member);
-      //    auto edgeSet = rewriter.create<util::GenericMemrefCastOp>(loc, typeConverter->convertType(columnDef.getColumn().type), ref);
-      //    columns.append({columnDef});
-      //    columnValues.append({edgeSet});
-      // };
-      // processMembers(gatherOp, outgoingMembers, memberManager, processEdgeSetMembers);
-      // processMembers(gatherOp, incomingMembers, memberManager, processEdgeSetMembers);
-      // EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
-      // auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
-      // auto propertyType = nodeEntryType.getTypes()[nodeEntryType.size() - 1];
-      // auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, nodeEntryType.size() - 1);
-      // auto props = storageHelper.getValueMap(propRef, rewriter, loc);
-      // processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
-      //    mlir::Value value;
-      //    if (mlir::isa<graph::PropertySetType>(memberManager.getType(member))) {
-      //       value = ref;
-      //    }
-      //    else {
-      //       value = props.get(member);
-      //    }
-      //    auto columnDef = gatherOp.getMapping().getColumnDef(member);
-      //    columns.append({columnDef});
-      //    columnValues.append({value});
-      // });
+      auto processEdgeSetMembers = [&](size_t i, const Member& member){
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
+         auto edgeSetRef = rt::GraphStorageHelper::getRelationshipLListHeadOf(rewriter, loc)({ref})[0];
+         auto edgeSet = rewriter.create<util::GenericMemrefCastOp>(loc, typeConverter->convertType(columnDef.getColumn().type), edgeSetRef);
+         columns.append({columnDef});
+         columnValues.append({edgeSet});
+      };
+      processMembers(gatherOp, outgoingMembers, memberManager, processEdgeSetMembers);
+      processMembers(gatherOp, incomingMembers, memberManager, processEdgeSetMembers);
+      EntryStorageHelper storageHelper(gatherOp, propertyMembers, false, typeConverter);
+      auto nodeEntryType = getNodeEntryType(referenceType, *typeConverter);
+      auto propertyType = nodeEntryType.getTypes()[2];
+      auto propRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, propertyType), ref, 2);
+      auto props = storageHelper.getValueMap(propRef, rewriter, loc);
+      processMembers(gatherOp, propertyMembers, memberManager, [&](size_t i, const Member& member){
+         mlir::Value value;
+         if (mlir::isa<graph::PropertySetType>(memberManager.getType(member))) {
+            value = rt::PropertyGraphStorageHelper::getNodePropertyLListHeadOf(rewriter, loc)({ref})[0];
+         }
+         else {
+            value = props.get(member);
+         }
+         auto columnDef = gatherOp.getMapping().getColumnDef(member);
+         columns.append({columnDef});
+         columnValues.append({value});
+      });
       mapping.define(mlir::ArrayAttr::get(ctxt, columns), columnValues);
       rewriter.replaceTupleStream(gatherOp, mapping);
       return success();
