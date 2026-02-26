@@ -172,7 +172,7 @@ property_id_t GraphStorageHelper::getPropId(uint8_t* prop) {
 uint8_t* GraphStorageHelper::getRelationshipLListHeadOf(uint8_t* ref) {
     GraphStorageData graphData = getGraphInfo(ref);
     auto node = (GraphBase::NodeEntry*) ref;
-    return graphData.nodeBufferPtr + node->nextRelId * graphData.relEntrySize;
+    return graphData.relBufferPtr + node->nextRelId * graphData.relEntrySize;
 }
 node_id_t PageRankGraph::getNodeId(NodeEntry* node) const {
     return node - nodes.ptr;
