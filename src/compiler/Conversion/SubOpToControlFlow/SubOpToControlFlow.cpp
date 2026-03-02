@@ -956,17 +956,16 @@ static mlir::TupleType getEdgeEntryType(graph::EdgeRefType t, mlir::TypeConverte
    auto propertyTupleType = EntryStorageHelper(nullptr, t.getPropertyMembers(), false, &converter).getStorageType();
    return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i32Type, i32Type, i32Type, propertyTupleType, i1Type});
 }
-// static mlir::TupleType getPropertyEntryType(graph::TypedPropertyRefType t, mlir::TypeConverter& converter) {
-//    auto i1Type = IntegerType::get(t.getContext(), 1);
-//    auto i64Type = IntegerType::get(t.getContext(), 64);
-//    auto propertyTupleType = EntryStorageHelper(nullptr, t.getMembers(), false, &converter).getStorageType();
-//    return mlir::TupleType::get(t.getContext(), {i1Type, i64Type, i64Type, i64Type, i64Type, i64Type, propertyTupleType});
-// }
-// static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
-//    auto i1Type = IntegerType::get(t.getContext(), 1);
-//    auto i64Type = IntegerType::get(t.getContext(), 64);
-//    return mlir::TupleType::get(t.getContext(), {i1Type, i64Type, i64Type, i64Type, i64Type, i64Type, i64Type});
-// }
+static mlir::TupleType getPropertyEntryType(graph::TypedPropertyRefType t, mlir::TypeConverter& converter) {
+   auto valTupleType = EntryStorageHelper(nullptr, t.getMembers(), false, &converter).getStorageType();
+   return mlir::cast<mlir::TupleType>(converter.convertType(valTupleType));
+}
+static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
+   auto i1Type = IntegerType::get(t.getContext(), 1);
+   auto i32Type = IntegerType::get(t.getContext(), 32);
+   auto i64Type = IntegerType::get(t.getContext(), 32);
+   return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i64Type});
+}
 
 static TupleType convertTuple(TupleType tupleType, TypeConverter& typeConverter) {
    std::vector<Type> types;
@@ -4938,6 +4937,52 @@ class EdgeCountOpLowering : public SubOpTupleStreamConsumerConversionPattern<gra
    }
 };
 
+class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropertySetOp> {
+   using SubOpConversionPattern<graph::ScanPropertySetOp>::SubOpConversionPattern;
+   LogicalResult matchAndRewrite(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
+      auto propSetType = mlir::dyn_cast_or_null<graph::PropertySetType>(scanRefsOp.getPropSet().getType());
+      if (!propSetType) return failure();
+      auto propRefColType = scanRefsOp.getProducedReference().getColumn().type;
+      auto propRefType = mlir::dyn_cast_or_null<graph::TypedPropertyRefType>(propRefColType);
+      auto propSetIt = memberManager.getType(*(propSetType.getMembers().getMembers().begin()));
+      auto propSetItType = mlir::dyn_cast_or_null<graph::GraphSetIteratorType>(propSetIt);
+      if (!propSetItType) assert(false && "Property set requires an iterator member!");
+      if (propSetItType.getStrategy().size() == 0) assert(false && "Property set iterator requires an iteration strategy!");
+      auto propSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(propSetItType.getStrategy().begin()));
+      if (!propSetItStrategy) return failure();
+      if (propRefType) {
+         auto propType = getPropertyEntryType(propRefType, *typeConverter);
+         if (isInlined(propType)) {
+            return genScanInlinedPropertyRefs(propSetItStrategy, propType, scanRefsOp, adaptor, rewriter);
+         }
+      }
+      return genScanPropertyRefs(propSetItStrategy, scanRefsOp, adaptor, rewriter);
+   }
+private:
+   LogicalResult genScanInlinedPropertyRefs(const StringAttr& it, const mlir::TupleType& propertyType, graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
+      return failure();
+   }
+   LogicalResult genScanPropertyRefs(const StringAttr& it, graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
+      return failure();
+   }
+   bool isInlined(const mlir::TupleType& type) const {
+      if (type.getTypes().size() != 0) {
+         return false;
+      }
+      auto t = type.getTypes()[0];
+      auto integerType = mlir::dyn_cast_or_null<mlir::IntegerType>(t);
+      if (integerType) {
+         return integerType.getWidth() <= 64;
+      }
+      auto floatType = mlir::dyn_cast_or_null<mlir::FloatType>(t);
+      if (floatType) {
+         return floatType.getWidth() <= 64;
+      }
+      return false;
+   }
+};
+
 // class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropertySetOp> {
 //    public:
 //    using SubOpConversionPattern<graph::ScanPropertySetOp>::SubOpConversionPattern;
@@ -5470,6 +5515,12 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
    });
    typeConverter.addConversion([&](graph::PropertySetType t) -> Type {
       return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+   });
+   typeConverter.addConversion([&](graph::TypedPropertyRefType t) -> Type {
+      return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
+   });
+   typeConverter.addConversion([&](graph::PropertyRefType t) -> Type {
+      return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
    });
 
    //basic tuple stream manipulation
