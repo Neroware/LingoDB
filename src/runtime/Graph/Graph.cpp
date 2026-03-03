@@ -306,14 +306,18 @@ PropertyGraph* createDefaultTestPropertyGraph() {
     g->addRelationship(1, 4, 0);
     g->addRelationship(2, 4, 0);
     g->addRelationship(2, 3, 0);
-    g->addNodeProperty(0, 0, 0, 42);
-    g->addNodeProperty(1, 11, 11, 111);
-    g->addNodeProperty(2, 22, 22, 222);
-    g->addNodeProperty(3, 33, 33, 333);
+    g->addNodeProperty(0, 0, 0, 424);
+    g->addNodeProperty(1, 11, 11, 100);
+    g->addNodeProperty(1, 11, 11, 101);
+    g->addNodeProperty(1, 11, 11, 102);
+    g->addNodeProperty(2, 22, 22, 200);
+    g->addNodeProperty(3, 33, 33, 300);
+    g->addNodeProperty(5, 55, 55, 501);
+    g->addNodeProperty(5, 55, 55, 502);
     g->addRelationshipProperty(0, 0, 0, 4242);
-    g->addRelationshipProperty(1, 11, 11, 1111);
-    g->addRelationshipProperty(2, 22, 22, 2222);
-    g->addRelationshipProperty(3, 33, 33, 3333);
+    g->addRelationshipProperty(1, 11, 11, 1000);
+    g->addRelationshipProperty(2, 22, 22, 2000);
+    g->addRelationshipProperty(3, 33, 33, 3000);
     return g;
 }
 GraphBase* GraphStorageHelper::createTestGraph(uint64_t whichOne) {

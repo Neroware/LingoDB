@@ -156,12 +156,13 @@ PropertyGraph* PropertyGraph::create(size_t initialNodeCapacity, size_t initialR
 uint8_t* PropertyGraphStorageHelper::getNodePropertyLListHeadOf(uint8_t* ref) {
     const auto& graphData = PropertyGraphStorageHelper::getGraphInfo(ref);
     auto node = (PropertyGraph::NodeEntry*) ref;
-    return graphData.propBufferPtr + node->nextPropId * graphData.relEntrySize;
+    auto llistHead = (PropertyGraph::PropertyEntry*) (graphData.propBufferPtr + node->nextPropId * graphData.propEntrySize);
+    return graphData.propBufferPtr + node->nextPropId * graphData.propEntrySize;
 }
 uint8_t* PropertyGraphStorageHelper::getRelPropertyLListHeadOf(uint8_t* ref) {
     const auto& graphData = PropertyGraphStorageHelper::getGraphInfo(ref);
     auto rel = (PropertyGraph::RelationshipEntry*) ref;
-    return graphData.propBufferPtr + rel->nextPropId * graphData.relEntrySize;
+    return graphData.propBufferPtr + rel->nextPropId * graphData.propEntrySize;
 }
 
 } // END namespace lingodb::runtime

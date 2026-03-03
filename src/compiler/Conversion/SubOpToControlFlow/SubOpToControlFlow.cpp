@@ -5036,8 +5036,7 @@ private:
             auto propBufLenI64 = rt::GraphStorageHelper::getPropBufferLen(rewriter, loc)({llheadRef})[0];
             auto propBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), propBufLenI64);
             auto propBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, propEntryType), propBufPtr, propBufLen);
-            auto startPropIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI32Type()), llheadRef, 1);
-            auto startEdgeId = rewriter.create<util::LoadOp>(loc, startPropIdRef);
+            auto startEdgeId = rt::GraphStorageHelper::getPropId(rewriter, loc)({llheadRef})[0];
 
             // Begin LList traversal
             auto llistElemType = rewriter.getI32Type();
