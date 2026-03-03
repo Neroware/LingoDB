@@ -10,7 +10,7 @@ module {
             }
             %px = subop.gather %vx @nodes::@ref { property => @props::@set({type = !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]>}) }
             %props = subop.nested_map %px [@props::@set] (%arg0, %arg1){
-                %prop_stream0 = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]> @props::@refs({type = !graph.property_ref<[property : i64]>})
+                %prop_stream0 = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]> @props::@refs({type = !graph.property_ref<[property_i64 : i64]>})
                 %prop_stream1 = graph.cast_property_ref %prop_stream0 @props::@refs -> @props::@refsI64({type = !graph.typed_property_ref<[property_i64 : i64]>})
                 tuples.return %prop_stream1 : !tuples.tuplestream
             }

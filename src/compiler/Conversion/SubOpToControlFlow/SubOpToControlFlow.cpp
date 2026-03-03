@@ -956,14 +956,14 @@ static mlir::TupleType getEdgeEntryType(graph::EdgeRefType t, mlir::TypeConverte
    auto propertyTupleType = EntryStorageHelper(nullptr, t.getPropertyMembers(), false, &converter).getStorageType();
    return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i32Type, i32Type, i32Type, propertyTupleType, i1Type});
 }
-static mlir::TupleType getPropertyEntryType(graph::TypedPropertyRefType t, mlir::TypeConverter& converter) {
+static mlir::TupleType getPropertyType(graph::TypedPropertyRefType t, mlir::TypeConverter& converter) {
    auto valTupleType = EntryStorageHelper(nullptr, t.getMembers(), false, &converter).getStorageType();
    return mlir::cast<mlir::TupleType>(converter.convertType(valTupleType));
 }
 static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
    auto i1Type = IntegerType::get(t.getContext(), 1);
    auto i32Type = IntegerType::get(t.getContext(), 32);
-   auto i64Type = IntegerType::get(t.getContext(), 32);
+   auto i64Type = IntegerType::get(t.getContext(), 64);
    return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i64Type});
 }
 
@@ -4998,20 +4998,20 @@ private:
          auto llheadRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, propEntryType), llistPtr);
 
          // LList traversal init
-         auto propBufPtr = rt::GraphStorageHelper::getPropBufferPtr(rewriter, loc)({ref})[0];
-         auto propBufLenI64 = rt::GraphStorageHelper::getPropBufferLen(rewriter, loc)({ref})[0];
+         auto propBufPtr = rt::GraphStorageHelper::getPropBufferPtr(rewriter, loc)({llheadRef})[0];
+         auto propBufLenI64 = rt::GraphStorageHelper::getPropBufferLen(rewriter, loc)({llheadRef})[0];
          auto propBufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), propBufLenI64);
          auto propBuf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, propEntryType), propBufPtr, propBufLen);
-         auto startPropIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), llheadRef, 1);
+         auto startPropIdRef = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI32Type()), llheadRef, 1);
          auto startEdgeId = rewriter.create<util::LoadOp>(loc, startPropIdRef);
 
          // Begin LList traversal
-         auto llistElemType = rewriter.getI64Type();
+         auto llistElemType = rewriter.getI32Type();
          mlir::Value llistElemRef = rewriter.create<util::AllocaOp>(loc, util::RefType::get(ctxt, llistElemType), mlir::Value());
          rewriter.create<util::StoreOp>(loc, startEdgeId, llistElemRef, mlir::Value());
          
          auto isValid = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
-            auto zero = b.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
+            auto zero = b.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI32Type(), 0));
             auto cmpsgtez = b.create<arith::CmpIOp>(loc, arith::CmpIPredicate::sge, elem, zero);
             return cmpsgtez;
          };
@@ -5024,7 +5024,7 @@ private:
          auto next = [&](OpBuilder& b, Location loc, mlir::Value elem) -> mlir::Value {
             auto elemIndex = b.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), elem);
             auto propRef = b.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, propEntryType), propBuf, elemIndex);
-            auto nextPropRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), propRef, 1);
+            auto nextPropRef = b.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI32Type()), propRef, 1);
             return b.create<util::LoadOp>(loc, nextPropRef);
          };
 
@@ -5120,6 +5120,82 @@ class FilterByGraphTypeLowering : public SubOpTupleStreamConsumerConversionPatte
    }
 };
 
+class CastPropertyRefLowering : public SubOpTupleStreamConsumerConversionPattern<graph::CastPropertyRefOp> {
+   using SubOpTupleStreamConsumerConversionPattern<graph::CastPropertyRefOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::CastPropertyRefOp castOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = castOp.getLoc();
+      auto ctxt = castOp.getContext();
+      auto refType = mlir::dyn_cast_or_null<graph::PropertyRefType>(castOp.getRef().getColumn().type);
+      auto ref = mapping.resolve(castOp, castOp.getRef());
+      if (!refType) return failure();
+      auto typedRefType = mlir::dyn_cast_or_null<graph::TypedPropertyRefType>(castOp.getTypedRef().getColumn().type);
+      if (!typedRefType) return failure();
+      auto propType = getPropertyType(typedRefType, *typeConverter);
+      if (isInlined(propType)) {
+         auto prop = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, 5);
+         auto propRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, propType), prop);
+         mapping.define(castOp.getTypedRef(), propRef);
+         rewriter.replaceTupleStream(castOp, mapping);
+         return success();
+      }
+      assert(false && "No support for buffered property values yet.");
+      return failure();
+   }
+private:
+   bool isInlined(const mlir::TupleType& type) const {
+      if (type.getTypes().size() != 1) {
+         return false;
+      }
+      auto t = type.getTypes()[0];
+      auto integerType = mlir::dyn_cast_or_null<mlir::IntegerType>(t);
+      if (integerType) {
+         return integerType.getWidth() <= 64;
+      }
+      auto floatType = mlir::dyn_cast_or_null<mlir::FloatType>(t);
+      if (floatType) {
+         return floatType.getWidth() <= 64;
+      }
+      return false;
+   }
+};
+
+class TypedPropertyRefGatherOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::GatherOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::GatherOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+
+   LogicalResult matchAndRewrite(subop::GatherOp gatherOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto referenceType = mlir::dyn_cast_or_null<graph::TypedPropertyRefType>(gatherOp.getRef().getColumn().type);
+      if (!referenceType) return failure();
+      EntryStorageHelper storageHelper(gatherOp, referenceType.getMembers(), referenceType.hasLock(), typeConverter);
+      storageHelper.loadIntoColumns(gatherOp.getMapping(), mapping, mapping.resolve(gatherOp, gatherOp.getRef()), rewriter, gatherOp->getLoc());
+      rewriter.replaceTupleStream(gatherOp, mapping);
+      return success();
+   }
+};
+
+class TypedPropertyRefScatterOpLowering : public SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::ScatterOp, 2>::SubOpTupleStreamConsumerConversionPattern;
+
+   LogicalResult matchAndRewrite(subop::ScatterOp scatterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto refType = scatterOp.getRef().getColumn().type;
+      auto referenceType = mlir::dyn_cast_or_null<graph::TypedPropertyRefType>(refType);
+      if (!referenceType) { return failure(); }
+      auto loc = scatterOp.getLoc();
+      auto ref = mapping.resolve(scatterOp, scatterOp.getRef());
+      if (!checkAtomicStore(scatterOp)) return failure();
+      auto writtenMembers = scatterOp.getWrittenMembers();
+      EntryStorageHelper storageHelper(scatterOp, referenceType.getMembers(), false, typeConverter);
+      auto values = storageHelper.getValueMap(ref, rewriter, loc);
+      for (auto x : scatterOp.getMapping().getMapping()) {
+         values.set(x.first, mapping.resolve(scatterOp, x.second));
+      }
+      values.store();
+      rewriter.eraseOp(scatterOp);
+      return success();
+   }
+};
+
 }; // namespace
 namespace {
 
@@ -5165,7 +5241,9 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
    rewriter.insertPattern<CreateGraphTypeLowering>(typeConverter, ctxt);
    rewriter.insertPattern<FilterByGraphTypeLowering>(typeConverter, ctxt);
-   // rewriter.insertPattern<TypedPropertyRefGatherOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<CastPropertyRefLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<TypedPropertyRefGatherOpLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<TypedPropertyRefScatterOpLowering>(typeConverter, ctxt);
 
    //Hashmap
    rewriter.insertPattern<CreateHashMapLowering>(typeConverter, ctxt);
@@ -5405,10 +5483,10 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
       return util::RefType::get(t.getContext(), getEdgeEntryType(t, typeConverter));
    });
    typeConverter.addConversion([&](graph::PropertySetType t) -> Type {
-      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
+      return IntegerType::get(ctxt, 32); //util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 8));
    });
    typeConverter.addConversion([&](graph::TypedPropertyRefType t) -> Type {
-      return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
+      return util::RefType::get(t.getContext(), getPropertyType(t, typeConverter));
    });
    typeConverter.addConversion([&](graph::PropertyRefType t) -> Type {
       return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
