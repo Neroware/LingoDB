@@ -217,22 +217,15 @@ mlir::Operation* graph::CreateTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir:
    return newOp;
 }
 
-mlir::Operation* graph::FilterRelationshipTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
-   auto newOp = builder.create<FilterRelationshipTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getEdgeRef(), getTypeRef());
+mlir::Operation* graph::FilterByTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<FilterByTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getRef(), getTypeRef());
    mapResults(mapping, this->getOperation(), newOp.getOperation());
 
    return newOp;
 }
 
-mlir::Operation* graph::FilterNodeTypeOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
-   auto newOp = builder.create<FilterRelationshipTypeOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getNodeRef(), getTypeRef());
-   mapResults(mapping, this->getOperation(), newOp.getOperation());
-
-   return newOp;
-}
-
-mlir::Operation* graph::FilterPropertyKeyOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
-   auto newOp = builder.create<FilterPropertyKeyOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getPropRef(), getTypeRef());
+mlir::Operation* graph::CastPropertyRefOp::cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, subop::ColumnMapping& columnMapping) {
+   auto newOp = builder.create<CastPropertyRefOp>(this->getLoc(), mapping.lookupOrDefault(getStream()), getRef(), getTypedRef());
    mapResults(mapping, this->getOperation(), newOp.getOperation());
 
    return newOp;

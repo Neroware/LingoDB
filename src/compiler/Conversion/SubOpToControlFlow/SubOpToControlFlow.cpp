@@ -960,12 +960,12 @@ static mlir::TupleType getPropertyEntryType(graph::TypedPropertyRefType t, mlir:
    auto valTupleType = EntryStorageHelper(nullptr, t.getMembers(), false, &converter).getStorageType();
    return mlir::cast<mlir::TupleType>(converter.convertType(valTupleType));
 }
-static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
-   auto i1Type = IntegerType::get(t.getContext(), 1);
-   auto i32Type = IntegerType::get(t.getContext(), 32);
-   auto i64Type = IntegerType::get(t.getContext(), 32);
-   return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i64Type});
-}
+// static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
+//    auto i1Type = IntegerType::get(t.getContext(), 1);
+//    auto i32Type = IntegerType::get(t.getContext(), 32);
+//    auto i64Type = IntegerType::get(t.getContext(), 32);
+//    return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i64Type});
+// }
 
 static TupleType convertTuple(TupleType tupleType, TypeConverter& typeConverter) {
    std::vector<Type> types;
@@ -5519,9 +5519,9 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
    typeConverter.addConversion([&](graph::TypedPropertyRefType t) -> Type {
       return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
    });
-   typeConverter.addConversion([&](graph::PropertyRefType t) -> Type {
-      return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
-   });
+   // typeConverter.addConversion([&](graph::PropertyRefType t) -> Type {
+   //    return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
+   // });
 
    //basic tuple stream manipulation
 
