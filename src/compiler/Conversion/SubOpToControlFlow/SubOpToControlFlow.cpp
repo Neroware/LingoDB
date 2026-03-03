@@ -5073,53 +5073,52 @@ private:
    }
 };
 
+class CreateGraphTypeLowering : public SubOpTupleStreamConsumerConversionPattern<graph::CreateTypeOp> {
+   using SubOpTupleStreamConsumerConversionPattern<graph::CreateTypeOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::CreateTypeOp createTypeOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = createTypeOp->getLoc();
+      // TODO Do lookup at compile time here!
+      int id = 42;
+      auto typeI32 = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI32Type(), id));
+      mapping.define(createTypeOp.getProducedReference(), typeI32);
+      rewriter.replaceTupleStream(createTypeOp, mapping);
+      return success();
+   }
+};
 
-// An early try, temporarly kept as a basis for property set scans
-// class ScanPropertySetLowering : public SubOpConversionPattern<graph::ScanPropertySetOp> {
-//    using SubOpConversionPattern<graph::ScanPropertySetOp>::SubOpConversionPattern;
-//    LogicalResult matchAndRewrite(graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
-//       auto& memberManager = getContext()->getLoadedDialect<subop::SubOperatorDialect>()->getMemberManager();
-//       auto propSetType = mlir::dyn_cast_or_null<graph::PropertySetType>(scanRefsOp.getPropSet().getType());
-//       if (!propSetType) return failure();
-//       auto propRefColType = scanRefsOp.getProducedReference().getColumn().type;
-//       auto propRefType = mlir::dyn_cast_or_null<graph::TypedPropertyRefType>(propRefColType);
-//       auto propSetIt = memberManager.getType(*(propSetType.getMembers().getMembers().begin()));
-//       auto propSetItType = mlir::dyn_cast_or_null<graph::GraphSetIteratorType>(propSetIt);
-//       if (!propSetItType) assert(false && "Property set requires an iterator member!");
-//       if (propSetItType.getStrategy().size() == 0) assert(false && "Property set iterator requires an iteration strategy!");
-//       auto propSetItStrategy = mlir::dyn_cast_or_null<StringAttr>(*(propSetItType.getStrategy().begin()));
-//       if (!propSetItStrategy) return failure();
-//       if (propRefType) {
-//          auto propType = getPropertyEntryType(propRefType, *typeConverter);
-//          if (isInlined(propType)) {
-//             return genScanInlinedPropertyRefs(propSetItStrategy, propType, scanRefsOp, adaptor, rewriter);
-//          }
-//       }
-//       return genScanPropertyRefs(propSetItStrategy, scanRefsOp, adaptor, rewriter);
-//    }
-// private:
-//    LogicalResult genScanInlinedPropertyRefs(const StringAttr& it, const mlir::TupleType& propertyType, graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
-//       return failure();
-//    }
-//    LogicalResult genScanPropertyRefs(const StringAttr& it, graph::ScanPropertySetOp scanRefsOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const {
-//       return failure();
-//    }
-//    bool isInlined(const mlir::TupleType& type) const {
-//       if (type.getTypes().size() != 0) {
-//          return false;
-//       }
-//       auto t = type.getTypes()[0];
-//       auto integerType = mlir::dyn_cast_or_null<mlir::IntegerType>(t);
-//       if (integerType) {
-//          return integerType.getWidth() <= 64;
-//       }
-//       auto floatType = mlir::dyn_cast_or_null<mlir::FloatType>(t);
-//       if (floatType) {
-//          return floatType.getWidth() <= 64;
-//       }
-//       return false;
-//    }
-// };
+class FilterByGraphTypeLowering : public SubOpTupleStreamConsumerConversionPattern<graph::FilterByTypeOp> {
+   using SubOpTupleStreamConsumerConversionPattern<graph::FilterByTypeOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(graph::FilterByTypeOp filterOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto loc = filterOp.getLoc();
+      auto ctxt = filterOp.getContext();
+      auto nodeRefType = mlir::dyn_cast_or_null<graph::NodeRefType>(filterOp.getRef().getColumn().type);
+      auto relRefType = mlir::dyn_cast_or_null<graph::EdgeRefType>(filterOp.getRef().getColumn().type);
+      auto propRefType = mlir::dyn_cast_or_null<graph::PropertyRefType>(filterOp.getRef().getColumn().type);
+      mlir::Type refType;
+      refType = nodeRefType ? getNodeEntryType(nodeRefType, *typeConverter) : refType;
+      refType = relRefType ? getEdgeEntryType(relRefType, *typeConverter) : refType;
+      refType = propRefType ? getPropertyEntryType(propRefType, *typeConverter) : refType;
+      if (!refType) return failure();
+      auto ptr = mapping.resolve(filterOp, filterOp.getRef());
+      auto ref = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, refType), ptr);
+      auto identI32 = mapping.resolve(filterOp, filterOp.getTypeRef());
+      mlir::Value typeI32;
+      if (nodeRefType) {
+         typeI32 = rt::GraphStorageHelper::getNodeId(rewriter, loc)({ptr})[0];
+      }
+      else if (relRefType || propRefType) {
+         auto typeI32Ref = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI32Type()), ref, 3);
+         typeI32 = rewriter.create<util::LoadOp>(loc, typeI32Ref);
+      }
+      auto eq = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq, identI32, typeI32);
+      auto ifOp = rewriter.create<mlir::scf::IfOp>(loc, mlir::TypeRange{}, eq);
+      ifOp.ensureTerminator(ifOp.getThenRegion(), rewriter, loc);
+      rewriter.atStartOf(&ifOp.getThenRegion().front(), [&](SubOpRewriter& rewriter) {
+         rewriter.replaceTupleStream(filterOp, mapping);
+      });
+      return success();
+   }
+};
 
 }; // namespace
 namespace {
@@ -5163,7 +5162,9 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ReduceGraphRefLowering>(typeConverter, ctxt);
    //PropertyGraph
-   // rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<CreateGraphTypeLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<FilterByGraphTypeLowering>(typeConverter, ctxt);
    // rewriter.insertPattern<TypedPropertyRefGatherOpLowering>(typeConverter, ctxt);
 
    //Hashmap
@@ -5411,6 +5412,9 @@ void SubOpToControlFlowLoweringPass::runOnOperation() {
    });
    typeConverter.addConversion([&](graph::PropertyRefType t) -> Type {
       return util::RefType::get(t.getContext(), getPropertyEntryType(t, typeConverter));
+   });
+   typeConverter.addConversion([&](graph::TypeIdentifierType t) -> Type {
+      return util::RefType::get(t.getContext(), mlir::IntegerType::get(ctxt, 32));
    });
 
    //basic tuple stream manipulation
