@@ -5,7 +5,7 @@
 namespace lingodb::compiler::dialect {
 namespace graph {
 
-enum Node {
+enum NodeEntry {
     NODE_ENTRY_IN_USE_PTR = 0,
     NODE_ENTRY_NEXT_REL_ID_PTR = 1,
     NODE_ENTRY_PROPERTY_PTR = 2,
@@ -16,7 +16,7 @@ enum Node {
     NODE_ENTRY_LABEL_4_PTR = 7,
     NODE_ENTRY_EXTRA_PTR = 8
 };
-enum Relationship {
+enum RelationshipEntry {
     RELATIONSHIP_ENTRY_IN_USE_PTR = 0,
     RELATIONSHIP_ENTRY_FIRST_NODE_ID_PTR = 1,
     RELATIONSHIP_ENTRY_SECOND_NODE_ID_PTR = 2,
@@ -28,7 +28,7 @@ enum Relationship {
     RELATIONSHIP_ENTRY_PROPERTY_PTR = 8,
     RELATIONSHIP_ENTRY_FIRST_IN_CHAIN_MARKER_PTR = 9
 };
-enum Property {
+enum PropertyEntry {
     PROPERTY_ENTRY_IN_USE_PTR = 0,
     PROPERTY_ENTRY_NEXT_PROP_ID_PTR = 1,
     PROPERTY_ENTRY_PREV_PROP_ID_PTR = 2,
