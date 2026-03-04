@@ -1,10 +1,6 @@
 #ifndef LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
 #define LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
 #include <cstdint>
-#include "lingodb/compiler/Dialect/DB/IR/DBTypes.h"
-#include "lingodb/semantics/Datatypes.h"
-
-using namespace lingodb::semantics;
 
 namespace lingodb::compiler::dialect {
 namespace graph {
