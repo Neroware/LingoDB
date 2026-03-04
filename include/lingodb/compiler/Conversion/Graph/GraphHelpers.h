@@ -1,19 +1,18 @@
-#ifndef LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHTYPEIDENTIFIER_H
-#define LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHTYPEIDENTIFIER_H
+#ifndef LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
+#define LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
 #include <cstdint>
 #include "lingodb/compiler/Dialect/DB/IR/DBTypes.h"
 #include "lingodb/semantics/Datatypes.h"
 
 using namespace lingodb::semantics;
 
-typedef uint64_t graph_type_id_t;
 namespace lingodb::compiler::dialect {
 namespace graph {
 
 enum Node {
     NODE_ENTRY_IN_USE_PTR = 0,
     NODE_ENTRY_NEXT_REL_ID_PTR = 1,
-    NODE_ENTRY_NEXT_PROP_ID_PTR = 2,
+    NODE_ENTRY_PROPERTY_PTR = 2,
     NODE_ENTRY_LABEL_0_PTR = 3,
     NODE_ENTRY_LABEL_1_PTR = 4,
     NODE_ENTRY_LABEL_2_PTR = 5,
@@ -30,7 +29,7 @@ enum Relationship {
     RELATIONSHIP_ENTRY_FIRST_NEXT_REL_ID_PTR = 5,
     RELATIONSHIP_ENTRY_SECOND_PREV_REL_ID_PTR = 6,
     RELATIONSHIP_ENTRY_SECOND_NEXT_REL_ID_PTR = 7,
-    RELATIONSHIP_ENTRY_NEXT_PROP_ID_PTR = 8,
+    RELATIONSHIP_ENTRY_PROPERTY_PTR = 8,
     RELATIONSHIP_ENTRY_FIRST_IN_CHAIN_MARKER_PTR = 9
 };
 enum Property {
@@ -45,4 +44,4 @@ enum Property {
 } // graph
 } // lingodb::compiler::dialect
 
-#endif // LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHTYPEIDENTIFIER_H
+#endif // LINGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
