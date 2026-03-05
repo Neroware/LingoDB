@@ -1,0 +1,1 @@
+#include "lingodb/semantics/RdfGraph.h"

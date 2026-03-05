@@ -34,6 +34,8 @@ include(FindZLIB)
 message("Using ZLIB: ${ZLIB_INCLUDE_DIRS}")
 message("Using Python3: ${Python3_EXECUTABLE}")
 
+find_package(rdf4cpp REQUIRED)
+
 find_package(Arrow 21 REQUIRED)
 find_package(ArrowCompute 21 REQUIRED)
 option(ENABLE_GPU_BACKEND "enable GPU backend" OFF)
@@ -69,6 +71,11 @@ include_directories(${CLANG_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored)
+
+include_directories(${PROJECT_SOURCE_DIR}/vendored/expected_lite)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/hash/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/sparse_map/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/template_library/include)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/linenoise-ng/ EXCLUDE_FROM_ALL)
 

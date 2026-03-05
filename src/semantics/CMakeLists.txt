@@ -1,1 +1,1 @@
-add_library(semantics UriHelper.cpp)
+add_library(semantics RdfGraph.cpp)
