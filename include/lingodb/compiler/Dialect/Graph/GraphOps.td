@@ -98,7 +98,7 @@ def NodeDegreeOp : Graph_Op<"node_degree", [Pure,SubOperator,ReferenceProducer,D
 // The following operations are strictly runtime-specific for the given PropertyGraph data structure 
 // adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
 // general graph processing IR, which is minimally complete with lowerings for CreateOp, ScanOp, 
-// GatherOp and ScatterOp.
+// GatherOp and ScatterOp on node and edge sets.
 
 def ScanPropertySetOp : Graph_Op<"subop.scan_property_set", [Pure,SubOperator,ReferenceProducer,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
     let summary = "scan state (sequentially)";
@@ -126,46 +126,24 @@ def CreateTypeOp : Graph_Op<"create_type", [Pure,SubOperator,ReferenceProducer]>
     }];
 }
 
-def FilterRelationshipTypeOp : Graph_Op<"filter_relationship_type", [Pure,SubOperator]> {
-    let summary = "filter relationship type";
-    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $edgeRef, ColumnRefAttr: $typeRef);
+def FilterByTypeOp : Graph_Op<"filter_by_type", [Pure,SubOperator]> {
+    let summary = "filter graph ref by type";
+    let arguments = (ins TupleStream : $stream, ColumnRefAttr : $ref, ColumnRefAttr : $typeRef);
     let results = (outs TupleStream : $res);
-    let assemblyFormat = [{  $stream custom<CustRef>($edgeRef) `of` `type` custom<CustRef>($typeRef) attr-dict }];
+    let assemblyFormat = [{  $stream custom<CustRef>($ref) `of` `type` custom<CustRef>($typeRef) attr-dict }];
     let extraClassDeclaration = [{
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
 
-def FilterNodeTypeOp : Graph_Op<"filter_node_type", [Pure,SubOperator]> {
-    let summary = "filter node type";
-    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $nodeRef, ColumnRefAttr: $typeRef);
+def CastPropertyRefOp : Graph_Op<"cast_property_ref", [Pure,SubOperator]> {
+    let summary = "cast to typed property ref";
+    let arguments = (ins TupleStream : $stream, ColumnRefAttr : $ref, ColumnDefAttr : $typedRef);
     let results = (outs TupleStream : $res);
-    let assemblyFormat = [{  $stream custom<CustRef>($nodeRef) `of` `type` custom<CustRef>($typeRef) attr-dict }];
+    let assemblyFormat = [{  $stream custom<CustRef>($ref) `->` custom<CustDef>($typedRef) attr-dict }];
     let extraClassDeclaration = [{
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
-
-def FilterPropertyKeyOp : Graph_Op<"filter_property_key", [Pure,SubOperator]> {
-    let summary = "filter property key";
-    let arguments = (ins TupleStream : $stream, ColumnRefAttr: $propRef, ColumnRefAttr: $typeRef);
-    let results = (outs TupleStream : $res);
-    let assemblyFormat = [{  $stream custom<CustRef>($propRef) `has` `key` custom<CustRef>($typeRef) attr-dict }];
-    let extraClassDeclaration = [{
-        mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
-    }];
-}
-
-// def FilterRelationshipTypeOp 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Graph IR <-> SubOp IR
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// def AdjacencyTableOp : Graph_Op<"adjacency_table", [Pure,StateCreator]> {
-//     let summary = "create adjacency table for relationship";
-//     let results = (outs Buffer : $res);
-//     let assemblyFormat = [{ type($res) attr-dict }];
-// }
 
 #endif // LINGODB_DIALECT_GRAPH_OPS

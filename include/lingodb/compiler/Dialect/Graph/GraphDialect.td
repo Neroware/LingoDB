@@ -41,15 +41,31 @@ def GraphSetIterator : Graph_Type<"GraphSetIterator", "graph_set_iterator"> {
     let assemblyFormat = "`<` $strategy `>`";
 }
 
-def NodeSet : Graph_Type<"NodeSet", "node_set", [State]> {
+def NodeSet : Graph_Type<"NodeSet", "node_set", [State,LookupAbleState]> {
     let summary = "node set";
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
 }
-def EdgeSet : Graph_Type<"EdgeSet", "edge_set", [State]> {
+def EdgeSet : Graph_Type<"EdgeSet", "edge_set", [State,LookupAbleState]> {
     let summary = "edge set";
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
 }
 
 def Graph : Graph_Type<"Graph", "graph", [State]> {
@@ -87,10 +103,18 @@ def EdgeRef : Graph_Type<"EdgeRef", "edge_ref", [State]> {
 // general graph processing IR, which is minimally complete with types for graphs, node sets, nodes 
 // edge sets and edges.
 
-def PropertySet : Graph_Type<"PropertySet", "property_set", [State]> {
+def PropertySet : Graph_Type<"PropertySet", "property_set", [State,LookupAbleState]> {
     let summary = "property set";
     let parameters = (ins "StateMembersAttr":$members);
     let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
 }
 def PropertyRef : Graph_Type<"PropertyRef", "property_ref", [State]> {
     let summary = "property reference";
