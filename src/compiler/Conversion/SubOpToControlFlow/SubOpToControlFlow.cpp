@@ -4907,6 +4907,56 @@ class ReduceGraphRefLowering : public SubOpTupleStreamConsumerConversionPattern<
       return success();
    }
 };
+class LookupGraphSetLowering : public SubOpTupleStreamConsumerConversionPattern<subop::LookupOp> {
+   public:
+   using SubOpTupleStreamConsumerConversionPattern<subop::LookupOp>::SubOpTupleStreamConsumerConversionPattern;
+   LogicalResult matchAndRewrite(subop::LookupOp lookupOp, OpAdaptor adaptor, SubOpRewriter& rewriter, ColumnMapping& mapping) const override {
+      auto nodeSetType = mlir::dyn_cast_or_null<graph::NodeSetType>(lookupOp.getState().getType());
+      auto nodeRefType = mlir::dyn_cast_or_null<graph::NodeRefType>(lookupOp.getRef().getColumn().type);
+      auto edgeSetType = mlir::dyn_cast_or_null<graph::EdgeSetType>(lookupOp.getState().getType());
+      auto edgeRefType = mlir::dyn_cast_or_null<graph::EdgeRefType>(lookupOp.getRef().getColumn().type);
+      auto propSetType = mlir::dyn_cast_or_null<graph::PropertySetType>(lookupOp.getState().getType());
+      auto propRefType = mlir::dyn_cast_or_null<graph::PropertyRefType>(lookupOp.getRef().getColumn().type);
+      if ((!nodeSetType || !nodeRefType) && (!edgeSetType || !edgeRefType) && (!propSetType || !propRefType)) return failure();
+      if (lookupOp.getKeys().empty()) return failure();
+      tuples::ColumnRefAttr keyRef = mlir::dyn_cast_or_null<tuples::ColumnRefAttr>(lookupOp.getKeys()[0]);
+      if (!keyRef) return failure();
+      auto loc = lookupOp->getLoc();
+      auto ctxt = getContext();
+      auto key = mapping.resolve(lookupOp, keyRef);
+      mlir::Value resRef;
+      if (nodeSetType) {
+         auto entryType = getNodeEntryType(nodeRefType, *typeConverter);
+         auto bufPtr = rt::GraphStorageHelper::getNodeBufferPtr(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLenI64 = rt::GraphStorageHelper::getNodeBufferLen(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), bufLenI64);
+         auto buf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, entryType), bufPtr, bufLen);
+         auto index = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), key);
+         resRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, entryType), buf, index);
+      }
+      else if (edgeSetType) {
+         auto entryType = getEdgeEntryType(edgeRefType, *typeConverter);
+         auto bufPtr = rt::GraphStorageHelper::getRelBufferPtr(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLenI64 = rt::GraphStorageHelper::getRelBufferLen(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), bufLenI64);
+         auto buf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, entryType), bufPtr, bufLen);
+         auto index = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), key);
+         resRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, entryType), buf, index);
+      }
+      else {
+         auto entryType = getPropertyEntryType(propRefType, *typeConverter);
+         auto bufPtr = rt::GraphStorageHelper::getPropBufferPtr(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLenI64 = rt::GraphStorageHelper::getPropBufferLen(rewriter, loc)({adaptor.getState()})[0];
+         auto bufLen = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), bufLenI64);
+         auto buf = rewriter.create<util::BufferCreateOp>(loc, util::BufferType::get(ctxt, entryType), bufPtr, bufLen);
+         auto index = rewriter.create<mlir::arith::IndexCastOp>(loc, rewriter.getIndexType(), key);
+         resRef = rewriter.create<util::BufferGetElementRef>(loc, util::RefType::get(ctxt, entryType), buf, index);
+      }
+      mapping.define(lookupOp.getRef(), resRef);
+      rewriter.replaceTupleStream(lookupOp, mapping);
+      return success();
+   }
+};
 
 //PropertyGraph
 
@@ -5266,6 +5316,7 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<NodeCountOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<EdgeCountOpLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ReduceGraphRefLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<LookupGraphSetLowering>(typeConverter, ctxt);
    //PropertyGraph
    rewriter.insertPattern<ScanPropertySetLowering>(typeConverter, ctxt);
    rewriter.insertPattern<CreateGraphTypeLowering>(typeConverter, ctxt);
