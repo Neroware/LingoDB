@@ -34,6 +34,7 @@ include(FindZLIB)
 message("Using ZLIB: ${ZLIB_INCLUDE_DIRS}")
 message("Using Python3: ${Python3_EXECUTABLE}")
 
+find_package(Boost 1.83.0 REQUIRED COMPONENTS headers)
 find_package(rdf4cpp REQUIRED)
 
 find_package(Arrow 21 REQUIRED)
@@ -72,13 +73,22 @@ include_directories(${CLANG_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored)
 
-include_directories(${PROJECT_SOURCE_DIR}/vendored/expected_lite)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/expected_lite/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/highway)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/hash/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/sparse_map/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/template_library/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/uni_algo/include)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/linenoise-ng/ EXCLUDE_FROM_ALL)
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/expected_lite/ EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/highway/ EXCLUDE_FROM_ALL)
+add_library(highway::highway ALIAS hwy) # rdf4cpp has forced my hand to do this terribleness
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/hash/ EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/sparse_map/ EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/template_library/ EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/uni_algo/ EXCLUDE_FROM_ALL)
 
 include_directories(${PROJECT_BINARY_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
