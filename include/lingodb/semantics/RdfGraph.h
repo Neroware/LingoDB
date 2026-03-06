@@ -2,11 +2,9 @@
 #define LINGODB_SEMANTICS_RDFGRAPH_H
 
 #include <rdf4cpp.hpp>
-#include "lingodb/runtime/Graph/PropertyGraph.h"
-
-using namespace rdf4cpp;
 
 namespace lingodb::semantics {
+using namespace rdf4cpp;
 
 struct extra_namespaces {
     const Namespace PI = Namespace("https://www.uni-augsburg.de/de/fakultaet/fai/informatik/prof/pi#");
@@ -15,7 +13,7 @@ struct extra_namespaces {
 };
 struct RdfGraph {
     IRI name;
-    runtime::PropertyGraph* storage;
+    void* storage;
     std::unordered_map<IRI, uint32_t> iris;
     std::unordered_map<BlankNode, uint32_t> bnodes;
     std::unordered_map<IRI, uint32_t> relTypes;

@@ -35,6 +35,7 @@
 #include "lingodb/compiler/runtime/Tracing.h"
 #include "lingodb/compiler/runtime/Graph/Graph.h"
 #include "lingodb/compiler/runtime/Graph/PropertyGraph.h"
+#include "lingodb/semantics/RdfGraph.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
