@@ -34,6 +34,7 @@
 #include <mlir/Dialect/ControlFlow/IR/ControlFlow.h>
 int main(int argc, char** argv) {
    using namespace lingodb::compiler::dialect;
+   using namespace gengodb::compiler::dialect;
 
    if (argc == 2 && std::string(argv[1]) == "--features") {
       printFeatures();

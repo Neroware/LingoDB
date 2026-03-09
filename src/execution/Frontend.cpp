@@ -37,6 +37,7 @@
 #include <iostream>
 void lingodb::execution::initializeContext(mlir::MLIRContext& context) {
    using namespace lingodb::compiler::dialect;
+   using namespace gengodb::compiler::dialect;
    mlir::DialectRegistry registry;
    registry.insert<mlir::BuiltinDialect>();
    registry.insert<relalg::RelAlgDialect>();

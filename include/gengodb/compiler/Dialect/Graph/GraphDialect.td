@@ -17,7 +17,7 @@ include "lingodb/compiler/Dialect/SubOperator/SubOperatorBase.td"
 def Graph_Dialect : Dialect {
     let name = "graph";
     let summary = "A dialect for universal graph processing";
-    let cppNamespace = "::lingodb::compiler::dialect::graph";
+    let cppNamespace = "::gengodb::compiler::dialect::graph";
     let useDefaultTypePrinterParser=1;
     let useDefaultAttributePrinterParser=1;
     let extraClassDeclaration = [{

@@ -2,7 +2,7 @@
 #define GENGODB_COMPILER_CONVERSION_GRAPH_GRAPHHELPERS_H
 #include <cstdint>
 
-namespace lingodb::compiler::dialect {
+namespace gengodb::compiler::dialect {
 namespace graph {
 
 enum NodeEntry {

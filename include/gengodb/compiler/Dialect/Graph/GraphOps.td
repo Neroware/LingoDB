@@ -40,7 +40,7 @@ def ScanNodeSetOp : Graph_Op<"subop.scan_node_set", [Pure,SubOperator,ReferenceP
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{ $node_set `:` type($node_set) custom<CustDef>($ref) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -50,7 +50,7 @@ def ScanEdgeSetOp : Graph_Op<"subop.scan_edge_set", [Pure,SubOperator,ReferenceP
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{ $edge_set `:` type($edge_set) custom<CustDef>($ref) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -62,7 +62,7 @@ def NodeCountOp : Graph_Op<"node_count", [Pure,SubOperator,ReferenceProducer,Dec
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{  $stream `,` $graph `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -74,7 +74,7 @@ def EdgeCountOp : Graph_Op<"edge_count", [Pure,SubOperator,ReferenceProducer,Dec
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{  $stream `,` $graph `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -86,7 +86,7 @@ def NodeDegreeOp : Graph_Op<"node_degree", [Pure,SubOperator,ReferenceProducer,D
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{  $stream `,` $graph `[` $dir `]` `->` custom<CustDef>($ref) `:` type($graph) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -106,7 +106,7 @@ def ScanPropertySetOp : Graph_Op<"subop.scan_property_set", [Pure,SubOperator,Re
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{ $prop_set `:` type($prop_set) custom<CustDef>($ref) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }
@@ -121,7 +121,7 @@ def CreateTypeOp : Graph_Op<"create_type", [Pure,SubOperator,ReferenceProducer]>
     let results = (outs TupleStream : $res);
     let assemblyFormat = [{  $stream $type `->`  custom<CustDef>($typeRef) attr-dict }];
     let extraClassDeclaration = [{
-        dialect::tuples::ColumnDefAttr getProducedReference(){ return getTypeRef(); }
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedReference(){ return getTypeRef(); }
         mlir::Operation* cloneSubOp(mlir::OpBuilder& builder, mlir::IRMapping& mapping, lingodb::compiler::dialect::subop::ColumnMapping& columnMapping);
     }];
 }

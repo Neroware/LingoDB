@@ -3,7 +3,7 @@
 
 #include <rdf4cpp.hpp>
 
-namespace lingodb::semantics {
+namespace gengodb::semantics {
 using namespace rdf4cpp;
 
 struct extra_namespaces {

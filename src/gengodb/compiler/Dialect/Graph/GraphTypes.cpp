@@ -9,9 +9,10 @@
 #include <llvm/ADT/TypeSwitch.h>
 
 using namespace mlir;
-using namespace lingodb::compiler::dialect::graph;
+using namespace gengodb::compiler::dialect::graph;
 namespace {
    using namespace lingodb::compiler::dialect;
+   using namespace gengodb::compiler::dialect;
    static mlir::LogicalResult parseStateMembers(mlir::AsmParser& parser, subop::StateMembersAttr& stateMembersAttr) {
       auto& memberManager = parser.getContext()->getOrLoadDialect<subop::SubOperatorDialect>()->getMemberManager();
       if (parser.parseLSquare()) return mlir::failure();
@@ -95,7 +96,7 @@ subop::StateMembersAttr graph::EdgeRefType::getMembers() {
 
 #define GET_TYPEDEF_CLASSES
 #include "gengodb/compiler/Dialect/Graph/GraphOpsTypes.cpp.inc"
-void lingodb::compiler::dialect::graph::GraphDialect::registerTypes() {
+void gengodb::compiler::dialect::graph::GraphDialect::registerTypes() {
    addTypes<
 #define GET_TYPEDEF_LIST
 #include "gengodb/compiler/Dialect/Graph/GraphOpsTypes.cpp.inc"

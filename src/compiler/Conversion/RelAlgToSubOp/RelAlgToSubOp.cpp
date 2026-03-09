@@ -38,6 +38,7 @@ using namespace mlir;
 
 namespace {
 using namespace lingodb::compiler::dialect;
+using namespace gengodb::compiler::dialect;
 using Member = subop::Member;
 using MemberCollector = llvm::SmallVector<Member>;
 using DefMappingCollector = llvm::SmallVector<subop::DefMappingPairT>;

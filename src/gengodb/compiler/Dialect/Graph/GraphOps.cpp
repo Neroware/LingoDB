@@ -10,6 +10,7 @@
 
 using namespace mlir;
 using namespace lingodb::compiler::dialect;
+using namespace gengodb::compiler::dialect;
 
 namespace {
 tuples::ColumnManager& getColumnManager(::mlir::OpAsmParser& parser) {

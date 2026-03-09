@@ -7,7 +7,7 @@
 #define GET_ATTRDEF_CLASSES
 #include "gengodb/compiler/Dialect/Graph/GraphOpsAttributes.cpp.inc"
 
-void lingodb::compiler::dialect::graph::GraphDialect::registerAttrs() {
+void gengodb::compiler::dialect::graph::GraphDialect::registerAttrs() {
    addAttributes<
 #define GET_ATTRDEF_LIST
 #include "gengodb/compiler/Dialect/Graph/GraphOpsAttributes.cpp.inc"

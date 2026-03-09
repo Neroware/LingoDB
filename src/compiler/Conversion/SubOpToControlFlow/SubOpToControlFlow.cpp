@@ -66,6 +66,7 @@ using namespace mlir;
 #endif
 namespace {
 using namespace lingodb::compiler::dialect;
+using namespace gengodb::compiler::dialect;
 namespace rt = lingodb::compiler::runtime;
 using Member = subop::Member;
 struct SubOpToControlFlowLoweringPass

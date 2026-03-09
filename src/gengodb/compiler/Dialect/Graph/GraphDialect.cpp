@@ -7,7 +7,7 @@
 
 #include "llvm/ADT/TypeSwitch.h"
 
-using namespace lingodb::compiler::dialect::graph;
+using namespace gengodb::compiler::dialect::graph;
 
 void GraphDialect::initialize() {
     addOperations<
