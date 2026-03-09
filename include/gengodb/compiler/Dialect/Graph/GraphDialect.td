@@ -1,0 +1,144 @@
+#ifndef GENGODB_DIALECT_GRAPH_DIALECT
+#define GENGODB_DIALECT_GRAPH_DIALECT
+
+include "mlir/IR/OpBase.td"
+include "mlir/IR/EnumAttr.td"
+include "mlir/IR/AttrTypeBase.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "lingodb/compiler/Dialect/SubOperator/SubOperatorBase.td"
+
+//===----------------------------------------------------------------------===//
+// Graph dialect definition.
+//===----------------------------------------------------------------------===//
+
+def Graph_Dialect : Dialect {
+    let name = "graph";
+    let summary = "A dialect for universal graph processing";
+    let cppNamespace = "::lingodb::compiler::dialect::graph";
+    let useDefaultTypePrinterParser=1;
+    let useDefaultAttributePrinterParser=1;
+    let extraClassDeclaration = [{
+            private:
+            void registerTypes();
+            void registerAttrs();
+        }];
+}
+
+//===----------------------------------------------------------------------===//
+// Types
+//===----------------------------------------------------------------------===//
+
+class Graph_Type<string name, string typeMnemonic, list<Trait> traits = []> : TypeDef<Graph_Dialect, name, traits> {
+    let mnemonic = typeMnemonic;
+}
+
+def GraphSetIterator : Graph_Type<"GraphSetIterator", "graph_set_iterator"> {
+    let summary = "graph set iterator";
+    let parameters = (ins "mlir::ArrayAttr":$strategy);
+    let assemblyFormat = "`<` $strategy `>`";
+}
+
+def NodeSet : Graph_Type<"NodeSet", "node_set", [State,LookupAbleState]> {
+    let summary = "node set";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
+}
+def EdgeSet : Graph_Type<"EdgeSet", "edge_set", [State,LookupAbleState]> {
+    let summary = "edge set";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
+}
+
+def Graph : Graph_Type<"Graph", "graph", [State]> {
+    let summary = "universal graph type";
+    let parameters = (ins "StateMembersAttr":$nodeMembers, "StateMembersAttr":$edgeMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($nodeMembers) `,` custom<StateMembers>($edgeMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
+}
+
+def NodeRef : Graph_Type<"NodeRef", "node_ref", [State]> {
+    let summary = "graph node reference";
+    let parameters = (ins "StateMembersAttr":$nodeMembers, "StateMembersAttr":$incomingMembers, "StateMembersAttr":$outgoingMembers, "StateMembersAttr":$propertyMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($nodeMembers) `,` custom<StateMembers>($incomingMembers) `,` custom<StateMembers>($outgoingMembers) `,` custom<StateMembers>($propertyMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
+}
+def EdgeRef : Graph_Type<"EdgeRef", "edge_ref", [State]> {
+    let summary = "graph edge reference";
+    let parameters = (ins "StateMembersAttr":$edgeMembers, "StateMembersAttr":$fromMembers, "StateMembersAttr":$toMembers, "StateMembersAttr":$propertyMembers);
+    let assemblyFormat = "`<` custom<StateMembers>($edgeMembers) `,` custom<StateMembers>($fromMembers) `,` custom<StateMembers>($toMembers) `,` custom<StateMembers>($propertyMembers) `>`";
+    let extraClassDeclaration = [{
+        StateMembersAttr getMembers();
+    }];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Property Graph
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The following types are strictly runtime-specific for the given PropertyGraph data structure 
+// adding the processing of Neo4j-style graphs to LingoDB. This means they are not necessary for a 
+// general graph processing IR, which is minimally complete with types for graphs, node sets, nodes 
+// edge sets and edges.
+
+def PropertySet : Graph_Type<"PropertySet", "property_set", [State,LookupAbleState]> {
+    let summary = "property set";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getKeyMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+            StateMembersAttr getValueMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
+}
+def PropertyRef : Graph_Type<"PropertyRef", "property_ref", [State]> {
+    let summary = "property reference";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
+def TypedPropertyRef : Graph_Type<"TypedPropertyRef", "typed_property_ref", [State]> {
+    let summary = "typed property ref";
+    let parameters = (ins "StateMembersAttr":$members);
+    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+}
+def TypeIdentifier : Graph_Type<"TypeIdentifier", "type_identifier", []> {
+    let summary = "type identifier";
+}
+
+//===----------------------------------------------------------------------===//
+// Attributes
+//===----------------------------------------------------------------------===//
+
+class Graph_Attr<string name> : AttrDef<Graph_Dialect, name>;
+
+// Currently needed because otherwise attribute part of the codegen won't run causing a compiler error
+def GraphDummyAttr : Graph_Attr<"GraphDummyAttr"> {
+    let mnemonic = "graph_dummy_attr";
+}
+
+#endif // GENGODB_DIALECT_GRAPH_DIALECT

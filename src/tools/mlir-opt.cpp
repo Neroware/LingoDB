@@ -10,7 +10,7 @@
 #include "lingodb/compiler/Dialect/SubOperator/SubOperatorDialect.h"
 #include "lingodb/compiler/Dialect/SubOperator/Transforms/Passes.h"
 #include "lingodb/compiler/Dialect/TupleStream/TupleStreamDialect.h"
-#include "lingodb/compiler/Dialect/Graph/GraphDialect.h"
+#include "gengodb/compiler/Dialect/Graph/GraphDialect.h"
 #include "lingodb/compiler/Dialect/util/UtilDialect.h"
 #include "lingodb/compiler/mlir-support/eval.h"
 #include "lingodb/execution/BackendPasses.h"
