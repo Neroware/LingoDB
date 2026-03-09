@@ -2,8 +2,8 @@
 
 namespace gengodb::semantics {
 
-RdfGraph RdfGraph::create(const Graph& rdfGraph, const IRI& name) {
-    return RdfGraph{.name = name, .storage = nullptr, .iris = {}, .bnodes = {}, .relTypes = {}, .literalTypes = {}};
+RdfGraph RdfGraph::create(const IRI& name,const Graph& rdfGraph) {
+    return RdfGraph{.name = name, .storage = nullptr, .nodes = {}, .relations = {}, .literalTypes = {}};
 }
 
 } // lingodb::semantics
