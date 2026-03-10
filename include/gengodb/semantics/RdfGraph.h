@@ -64,26 +64,42 @@ public:
     void load(const IRI& g);
     RdfGraph loadFromFile(const std::string& file, const IRI& name);
     void add(const RdfGraph& g);
-    RdfGraph get(const IRI& name);
+    RdfGraph get(const IRI& name) const;
 };
-/**
- * Checks if a literal value fits into the property table
- */
-static bool isInlined(const IRI& datatype) {
-    // TODO
-    return true;
-}
-/**
- * Returns if a literal value can be inlined and writes the inlined value into 'out'
- */
-static bool inlineValue(uint64_t& out, const std::any& in, const IRI& datatype) {
-    if (!isInlined(datatype)) {
-        return false;
+struct RdfDatatypeInlineHelper {
+    static const std::unordered_set<IRI> inlinedIRIs;
+    /**
+     * Checks if a literal value is inlined into the property table
+     */
+    bool isInlined(const IRI& datatype) const {
+        auto it = inlinedIRIs.find(datatype);
+        return it != inlinedIRIs.end();
     }
-    // TODO
-    out = 42;
-    return true;
-}
+    /**
+     * Writes the inlined value into 'out', undefined behavior if type cannot be inlined
+     */
+    void inlineValue(uint64_t* out, const std::any& in, const IRI& datatype) const {
+        Namespace xsd = namespaces::XSD();
+        if (datatype == xsd + "boolean")                inlineValue<bool>((bool*) out, in);
+        else if (datatype == xsd + "byte")              inlineValue<int8_t>((int8_t*) out, in);
+        else if (datatype == xsd + "double")            inlineValue<double>((double*) out, in);
+        else if (datatype == xsd + "float")             inlineValue<float>((float*) out, in);
+        else if (datatype == xsd + "int")               inlineValue<int32_t>((int32_t*) out, in);
+        else if (datatype == xsd + "long")              inlineValue<int64_t>((int64_t*) out, in);
+        else if (datatype == xsd + "short")             inlineValue<int16_t>((int16_t*) out, in);
+        else if (datatype == xsd + "unsignedByte")      inlineValue<uint8_t>((uint8_t*) out, in);
+        else if (datatype == xsd + "unsignedInt")       inlineValue<uint32_t>((uint32_t*) out, in);
+        else if (datatype == xsd + "unsignedLong")      inlineValue<uint64_t>((uint64_t*) out, in);
+        else if (datatype == xsd + "unsignedShort")     inlineValue<uint16_t>((uint16_t*) out, in);
+        else assert(false && "unsupported datatype for inlining");
+    }
+    template<typename T>
+    void inlineValue(T* out, const std::any& in) const {
+        T v = std::any_cast<T>(in);
+        T* ptr = (T*) out;
+        *ptr = v;
+    }
+};
 struct RdfGraph {
     IRI name;
     runtime::PropertyGraph* storage;
@@ -97,6 +113,7 @@ struct RdfGraph {
         return graph;
     }
     static RdfGraph create(const IRI& name, const Graph& rdfGraph);
+    static RdfGraph create(const IRI& name, void* node_ptr, size_t node_l, void* rel_ptr, size_t rel_l, void* prop_ptr, size_t prop_l);
     void addTriple(const Node& s, const Node& p, const Node& o) {
         int32_t sid = nodes.get_or_insert(s);
         if (storage->nodeCounter < nodes.size()) {
@@ -109,12 +126,16 @@ struct RdfGraph {
         int32_t pid = relations.get_or_insert(p);
         storage->addRelationship(sid, oid, pid);
         if (o.is_literal()) {
+            RdfDatatypeInlineHelper inlineHelper; 
             auto l = o.as_literal();
             auto datatype = literalTypes.get_or_insert(l.datatype());
             uint64_t v = 0;
-            if (!inlineValue(v, l.value(), l.datatype())) {
+            if (!inlineHelper.isInlined(l.datatype())) {
                 // TODO
                 assert(false && "only inlined literals supported");
+            }
+            else {
+                inlineHelper.inlineValue(&v, l.value(), l.datatype());
             }
             storage->addNodeProperty(oid, DATATYPE_PROPERTY_KEY, datatype, v);
         }
