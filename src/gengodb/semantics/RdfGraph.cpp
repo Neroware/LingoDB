@@ -1,6 +1,11 @@
 #include "gengodb/semantics/RdfGraph.h"
 
+#include <rdf4cpp/Graph.hpp>
+#include <rdf4cpp/parser/RDFFileParser.hpp>
+#include <filesystem>
+
 namespace gengodb::semantics {
+using namespace rdf4cpp::parser;
 
 RdfGraph RdfGraph::create(const IRI& name, const Graph& rdfGraph) {
     auto g = RdfGraph::create(name);
@@ -22,10 +27,15 @@ RdfGraph RdfGraph::create(const IRI& name, void* node_ptr, size_t node_l, void* 
     g.storage->propCounter = prop_l / sizeof(runtime::PropertyGraph::PropertyEntry);
     return g;
 }
+// inline void NodeHelper::ensureNode() {
+//     if (g->storage->nodeCounter < g->nodes.size()) {
+//         auto id = g->storage->addNode();
+//         g->storage->addNodeProperty(id, -1, -1, id);
+//     }
+// }
 inline void NodeHelper::ensureNode() {
     if (g->storage->nodeCounter < g->nodes.size()) {
-        auto id = g->storage->addNode();
-        g->storage->addNodeProperty(id, -1, -1, id);
+        g->storage->addNode();
     }
 }
 inline int32_t NodeHelper::resolveNode(const BlankNode& b) {
@@ -83,17 +93,37 @@ RdfGraph RdfGraphRegistry::get(const IRI& name) const {
     }
     return g->second;
 }
+RdfGraph RdfGraphRegistry::load(const IRI& g) {
+    // TODO implement
+    assert(false && "not implemented");
+}
+RdfGraph RdfGraphRegistry::load(const std::string& file, const IRI& name, const ParsingFlag parsingFlag) {
+    RDFFileParser parser(file, parsingFlag);
+    RdfGraph rdfGraph = RdfGraph::create(name);
+    for (const auto &v : parser) {
+        if (!v.has_value())
+            break;
+        auto quad = v.value();
+        rdfGraph.addTriple(quad.subject(), quad.predicate(), quad.object());
+    }
+    return rdfGraph;
+}
 void RdfGraphRegistry::loadAll() {
-    // TODO implement
-    assert(false && "not implemented");
-}
-void RdfGraphRegistry::load(const IRI& g) {
-    // TODO implement
-    assert(false && "not implemented");
-}
-RdfGraph RdfGraphRegistry::loadFromFile(const std::string& file, const IRI& name) {
-    // TODO implement
-    assert(false && "not implemented");
+    namespace fs = std::filesystem;
+    const fs::path dir{"./resouces/ttl/"};
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        return;
+    for (const auto &entry : fs::directory_iterator(dir)) {
+        if (!entry.is_regular_file())
+            continue;
+        const fs::path &path = entry.path();
+        if (path.extension() == ".ttl") {
+            std::string file = path.string();
+            std::string graph_name = path.stem().string();
+            auto graph = load(file, extra_namespaces().GENGODB + graph_name, ParsingFlag::Turtle);
+            add(graph);
+        }
+    }
 }
 const std::unordered_set<IRI> RdfDatatypeInlineHelper::inlinedIRIs = {
     IRI(datatypes::xsd::Boolean::identifier),
@@ -108,5 +138,6 @@ const std::unordered_set<IRI> RdfDatatypeInlineHelper::inlinedIRIs = {
     IRI(datatypes::xsd::UnsignedLong::identifier),
     IRI(datatypes::xsd::UnsignedShort::identifier),
 };
+RdfGraphRegistry* RdfGraphRegistry::singleton_ = nullptr;
 
 } // lingodb::semantics

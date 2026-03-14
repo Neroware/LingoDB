@@ -67,8 +67,8 @@ public:
     }
     static void init() { if (singleton_ == nullptr) singleton_ = new RdfGraphRegistry(); }
     void loadAll();
-    void load(const IRI& g);
-    RdfGraph loadFromFile(const std::string& file, const IRI& name);
+    RdfGraph load(const IRI& g);
+    RdfGraph load(const std::string& file, const IRI& name, const parser::ParsingFlag parsingFlag = parser::ParsingFlag::Turtle);
     void add(const RdfGraph& g);
     RdfGraph get(const IRI& name) const;
 };

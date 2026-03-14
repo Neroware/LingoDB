@@ -44,3 +44,9 @@ add_executable(run-sql run-sql.cpp)
 target_link_libraries(run-sql PUBLIC runner runtime utility mlir-support scheduler semantics)
 set_target_properties(run-sql PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 target_compile_definitions(run-sql PRIVATE ${COMPILE_DEFS})
+
+# run-sparql
+# add_executable(run-sparql run-sparql.cpp)
+# target_link_libraries(run-sparql PUBLIC runner runtime utility mlir-support scheduler semantics)
+# set_target_properties(run-sparql PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+# target_compile_definitions(run-sparql PRIVATE ${COMPILE_DEFS})
