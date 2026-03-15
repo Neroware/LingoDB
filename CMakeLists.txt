@@ -79,6 +79,7 @@ include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/hash/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/sparse_map/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/dice/template_library/include)
 include_directories(${PROJECT_SOURCE_DIR}/vendored/uni_algo/include)
+include_directories(${PROJECT_SOURCE_DIR}/vendored/libxml2/include)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/linenoise-ng/ EXCLUDE_FROM_ALL)
 
@@ -89,6 +90,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/hash/ EXCLUDE_FROM_ALL)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/sparse_map/ EXCLUDE_FROM_ALL)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/dice/template_library/ EXCLUDE_FROM_ALL)
 add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/uni_algo/ EXCLUDE_FROM_ALL)
+add_subdirectory(${PROJECT_SOURCE_DIR}/vendored/libxml2/ EXCLUDE_FROM_ALL)
 
 include_directories(${PROJECT_BINARY_DIR}/include)
 link_directories(${LLVM_BUILD_LIBRARY_DIR})

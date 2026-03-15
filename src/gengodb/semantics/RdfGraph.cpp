@@ -99,14 +99,15 @@ RdfGraph RdfGraphRegistry::load(const IRI& g) {
 }
 RdfGraph RdfGraphRegistry::load(const std::string& file, const IRI& name, const ParsingFlag parsingFlag) {
     RDFFileParser parser(file, parsingFlag);
-    RdfGraph rdfGraph = RdfGraph::create(name);
-    for (const auto &v : parser) {
-        if (!v.has_value())
-            break;
-        auto quad = v.value();
-        rdfGraph.addTriple(quad.subject(), quad.predicate(), quad.object());
-    }
-    return rdfGraph;
+    // RdfGraph rdfGraph = RdfGraph::create(name);
+    // for (const auto &v : parser) {
+    //     if (!v.has_value())
+    //         break;
+    //     auto quad = v.value();
+    //     rdfGraph.addTriple(quad.subject(), quad.predicate(), quad.object());
+    // }
+    // return rdfGraph;
+    return RdfGraph::create(name);
 }
 void RdfGraphRegistry::loadAll() {
     namespace fs = std::filesystem;
