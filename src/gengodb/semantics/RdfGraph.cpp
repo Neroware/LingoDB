@@ -125,19 +125,5 @@ void RdfGraphRegistry::loadAll() {
         }
     }
 }
-const std::unordered_set<IRI> RdfDatatypeInlineHelper::inlinedIRIs = {
-    IRI(datatypes::xsd::Boolean::identifier),
-    IRI(datatypes::xsd::Byte::identifier),
-    IRI(datatypes::xsd::Double::identifier),
-    IRI(datatypes::xsd::Float::identifier),
-    IRI(datatypes::xsd::Int::identifier),
-    IRI(datatypes::xsd::Long::identifier),
-    IRI(datatypes::xsd::Short::identifier),
-    IRI(datatypes::xsd::UnsignedByte::identifier),
-    IRI(datatypes::xsd::UnsignedInt::identifier),
-    IRI(datatypes::xsd::UnsignedLong::identifier),
-    IRI(datatypes::xsd::UnsignedShort::identifier),
-};
-RdfGraphRegistry* RdfGraphRegistry::singleton_ = nullptr;
 
 } // lingodb::semantics

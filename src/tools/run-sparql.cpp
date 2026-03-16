@@ -37,8 +37,7 @@ int main(int argc, char** argv) {
    // TODO Use Catalog for Property Graph storage
    //
    // TODO Use Catalog for RdfGraph registry...
-   gengodb::semantics::RdfGraphRegistry::init();
-   gengodb::semantics::RdfGraphRegistry::singleton()->loadAll();
+   gengodb::semantics::RdfGraphRegistry::instance().add(gengodb::semantics::RdfGraph::create(rdf4cpp::IRI{"foo:bar"}));
 
    lingodb::compiler::support::eval::init();
    execution::ExecutionMode runMode = execution::getExecutionMode();

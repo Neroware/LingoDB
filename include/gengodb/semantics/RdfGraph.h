@@ -61,11 +61,10 @@ private:
 public:
     RdfGraphRegistry() {}
     ~RdfGraphRegistry() {}
-    static RdfGraphRegistry* singleton() {
-        assert(singleton_ != nullptr && "init first");
-        return singleton_;
+    static RdfGraphRegistry& instance() {
+        static RdfGraphRegistry instance;
+        return instance;
     }
-    static void init() { if (singleton_ == nullptr) singleton_ = new RdfGraphRegistry(); }
     void loadAll();
     RdfGraph load(const IRI& g);
     RdfGraph load(const std::string& file, const IRI& name, const parser::ParsingFlag parsingFlag = parser::ParsingFlag::Turtle);
@@ -73,7 +72,22 @@ public:
     RdfGraph get(const IRI& name) const;
 };
 struct RdfDatatypeInlineHelper {
-    static const std::unordered_set<IRI> inlinedIRIs;
+    /**
+     * RDF datatype IRIs that can be inlined into the graph storage's property table
+     */
+    const std::unordered_set<IRI> inlinedIRIs = {
+        IRI(datatypes::xsd::Boolean::identifier),
+        IRI(datatypes::xsd::Byte::identifier),
+        IRI(datatypes::xsd::Double::identifier),
+        IRI(datatypes::xsd::Float::identifier),
+        IRI(datatypes::xsd::Int::identifier),
+        IRI(datatypes::xsd::Long::identifier),
+        IRI(datatypes::xsd::Short::identifier),
+        IRI(datatypes::xsd::UnsignedByte::identifier),
+        IRI(datatypes::xsd::UnsignedInt::identifier),
+        IRI(datatypes::xsd::UnsignedLong::identifier),
+        IRI(datatypes::xsd::UnsignedShort::identifier),
+    };
     /**
      * Checks if a literal value is inlined into the property table
      */
@@ -129,7 +143,7 @@ struct RdfGraph {
     static RdfGraph create(const IRI& name) {
         auto* storage = runtime::PropertyGraph::create(DEFAULT_CAPACITY, DEFAULT_CAPACITY, DEFAULT_CAPACITY);
         RdfGraph graph(name, storage);
-        RdfGraphRegistry::singleton()->add(graph);
+        RdfGraphRegistry::instance().add(graph);
         return graph;
     }
     static RdfGraph create(const IRI& name, const Graph& rdfGraph);
