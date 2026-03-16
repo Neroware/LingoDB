@@ -2,6 +2,8 @@
 
 namespace gengodb::catalog {
 
+RDFGraphCatalogEntry::RDFGraphCatalogEntry(std::string name, const IRI& iri, std::unique_ptr<semantics::RdfGraph> impl) : GraphCatalogEntry(CatalogEntryType::GENGODB_GRAPH_ENTRY, name), impl(std::move(impl)), iri(iri) {}
+
 void RDFGraphCatalogEntry::serializeEntry(lingodb::utility::Serializer& serializer) const {
     // TODO implement
     assert(false && "not implemented");
@@ -40,9 +42,9 @@ void RDFGraphCatalogEntry::setDBDir(std::string dbDir) {
     impl->storage->setDBDir(dbDir);
 }
 std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfGraphDef(const CreateRdfGraphDef& def) {
-    // TODO Create RdfGraph with GengoDBGraph storage in main memory, load from RDF triple file if no .dat-file is present. 
-    assert(false && "not implemented");
-    return nullptr;
+    auto impl = gengodb::semantics::RdfGraph::create(def);
+    auto res = std::make_shared<RDFGraphCatalogEntry>(def.name, def.graph, std::move(impl));
+    return res;
 }
 
 } // namespace gengodb::catalog

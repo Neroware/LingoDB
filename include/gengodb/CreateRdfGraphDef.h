@@ -9,7 +9,7 @@
 namespace gengodb::catalog {
 using namespace lingodb;
 struct CreateRdfGraphDef {
-    std::string path;
+    std::string name;
     rdf4cpp::IRI graph;
     rdf4cpp::parser::ParsingFlag format;
 

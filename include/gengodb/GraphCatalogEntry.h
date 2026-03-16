@@ -29,15 +29,16 @@ public:
 
 class RDFGraphCatalogEntry : public GraphCatalogEntry {
     std::unique_ptr<semantics::RdfGraph> impl;
+    rdf4cpp::IRI iri;
 
     public:
-    RDFGraphCatalogEntry(std::unique_ptr<semantics::RdfGraph> impl);
+    RDFGraphCatalogEntry(std::string name, const rdf4cpp::IRI& iri, std::unique_ptr<semantics::RdfGraph> impl);
 
     static constexpr std::array<CatalogEntryType, 1> entryTypes = {CatalogEntryType::GENGODB_GRAPH_ENTRY};
     void serializeEntry(lingodb::utility::Serializer& serializer) const override;
     static std::shared_ptr<RDFGraphCatalogEntry> deserialize(lingodb::utility::Deserializer& deserializer);
     ~RDFGraphCatalogEntry() override = default;
-    IRI getIri() const { return IRI{name}; }
+    IRI getIri() const { return iri; }
     IRI getNodeIri(int32_t node) const;
     IRI getRelationIri(int32_t rel) const;
     std::string_view getLocalId(int32_t node) const;

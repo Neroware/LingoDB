@@ -2,7 +2,6 @@
 #define GENGODB_RUNTIME_GENGODBGRAPH_H
 
 #include "gengodb/runtime/PropertyGraph.h"
-#include "gengodb/CreateRdfGraphDef.h"
 
 namespace lingodb::runtime {
 
@@ -34,9 +33,10 @@ public:
     virtual void setDBDir(std::string dbDir) {
         this->dbDir = dbDir;
     };
+    virtual std::string getDBDir() const { return this->dbDir; }
     void serialize(lingodb::utility::Serializer& serializer) const;
     static std::unique_ptr<GengoDBGraph> deserialize(lingodb::utility::Deserializer& deserializer);
-    static std::unique_ptr<GengoDBGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
+    static std::unique_ptr<GengoDBGraph> create(std::string name);
 }; // GengoDBGraph
 
 } // namespace lingodb::runtime

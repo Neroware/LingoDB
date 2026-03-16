@@ -1,15 +1,31 @@
 #include "gengodb/runtime/GengoDBGraph.h"
 
+#include <filesystem>
+
 namespace lingodb::runtime {
 
+void loadGraph(PropertyGraph* storage, std::string path) {
+    assert(false && "not implemented");
+}
 void GengoDBGraph::flush() {
     // TODO implement
     assert(false && "not implemented");
 }
 void GengoDBGraph::ensureLoaded() {
-    if (loaded) return;
-    // TODO implement
-    assert(false && "not implemented");
+    if (nodeCounter > 0) {
+        loaded = true;
+        return;
+    }
+    if (!loaded) {
+        loaded = true;
+        if (fileName.empty() || dbDir.empty()) {
+            return;
+        }
+        if (!std::filesystem::exists(dbDir + "/" + fileName)) {
+            return;
+        }
+        loadGraph(this, dbDir + "/" + fileName);
+    }
 }
 void GengoDBGraph::serialize(lingodb::utility::Serializer& serializer) const {
     // TODO implement
@@ -20,8 +36,8 @@ std::unique_ptr<GengoDBGraph> GengoDBGraph::deserialize(lingodb::utility::Deseri
     assert(false && "not implemented");
     return nullptr;
 }
-std::unique_ptr<GengoDBGraph> GengoDBGraph::create(const gengodb::catalog::CreateRdfGraphDef& def) {
-    auto g = std::make_unique<GengoDBGraph>(def.path + ".dat");
+std::unique_ptr<GengoDBGraph> GengoDBGraph::create(std::string name) {
+    auto g = std::make_unique<GengoDBGraph>(name + ".dat");
     GraphStorageHelper::addGraph(g.get(), GengoDBGraph::DEFAULT_CAPACITY, GengoDBGraph::DEFAULT_CAPACITY, GengoDBGraph::DEFAULT_CAPACITY);
     return g;
 }

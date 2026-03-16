@@ -2,6 +2,7 @@
 #define GENGODB_RDFGRAPH_H
 
 #include "gengodb/runtime/GengoDBGraph.h"
+#include "gengodb/CreateRdfGraphDef.h"
 #include <rdf4cpp.hpp>
 
 #include <iostream>
@@ -120,15 +121,16 @@ public:
     inline void addLiteral(int32_t sid, int32_t pid, const Literal& o);
 };
 struct RdfGraph {
-    IRI name;
+    IRI iri;
     std::unique_ptr<runtime::GengoDBGraph> storage;
     IriDictionary nodes;
     IriDictionary relations;
     IriDictionary literalTypes;
     std::unordered_map<std::string_view, int32_t> bnodes;
-    RdfGraph(const IRI& name, std::unique_ptr<runtime::GengoDBGraph> storage) 
-        : name(name), storage(std::move(storage)), nodeHelper(this) {}
+    RdfGraph(const IRI& iri, std::unique_ptr<runtime::GengoDBGraph> storage) 
+        : iri(iri), storage(std::move(storage)), nodeHelper(this) {}
     static std::unique_ptr<RdfGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
+    static std::unique_ptr<RdfGraph> create(const std::string& name, const IRI& iri = IRI{});
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
