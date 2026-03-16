@@ -67,13 +67,11 @@ std::unique_ptr<RdfGraph> RdfGraph::create(const gengodb::catalog::CreateRdfGrap
         auto quad = v.value();
         rdfGraph->addTriple(quad.subject(), quad.predicate(), quad.object());
     }
-    storage->ensureLoaded();
     return rdfGraph;
 }
-std::unique_ptr<RdfGraph> create(const std::string& name, const IRI& iri) {
+std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& iri) {
     auto storage = runtime::GengoDBGraph::create(name);
     auto rdfGraph = std::make_unique<RdfGraph>(iri ? iri : extra_namespaces().GENGODB + name, std::move(storage));
-    storage->ensureLoaded();
     return rdfGraph;
 }
 

@@ -41,8 +41,14 @@ void RDFGraphCatalogEntry::setShouldPersist(bool shouldPersist) {
 void RDFGraphCatalogEntry::setDBDir(std::string dbDir) {
     impl->storage->setDBDir(dbDir);
 }
-std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfGraphDef(const CreateRdfGraphDef& def) {
-    auto impl = gengodb::semantics::RdfGraph::create(def);
+std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfGraphDef(const CreateRdfGraphDef& def, bool useRdfFilePreload) {
+    std::unique_ptr<gengodb::semantics::RdfGraph> impl;
+    if (useRdfFilePreload) {
+        impl = gengodb::semantics::RdfGraph::create(def);
+    }
+    else {
+        impl = gengodb::semantics::RdfGraph::create(def.name, def.graph);
+    }
     auto res = std::make_shared<RDFGraphCatalogEntry>(def.name, def.graph, std::move(impl));
     return res;
 }

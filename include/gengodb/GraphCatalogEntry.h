@@ -47,7 +47,7 @@ class RDFGraphCatalogEntry : public GraphCatalogEntry {
     virtual void ensureFullyLoaded() override;
     virtual void setShouldPersist(bool shouldPersist) override;
     virtual void setDBDir(std::string dbDir) override;
-    static std::shared_ptr<RDFGraphCatalogEntry> createFromCreateRdfGraphDef(const CreateRdfGraphDef& def);
+    static std::shared_ptr<RDFGraphCatalogEntry> createFromCreateRdfGraphDef(const CreateRdfGraphDef& def, bool useRdfFilePreload = true);
 };
 } // lingodb::semantics
 
