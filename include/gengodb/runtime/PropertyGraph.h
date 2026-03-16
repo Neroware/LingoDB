@@ -1,5 +1,5 @@
-#ifndef GENGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
-#define GENGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
+#ifndef GENGODB_RUNTIME_PROPERTYGRAPH_H
+#define GENGODB_RUNTIME_PROPERTYGRAPH_H
 
 #include "gengodb/runtime/Graph.h"
 
@@ -39,4 +39,4 @@ struct PropertyGraphStorageHelper : public GraphStorageHelper {
 
 } // lingodb::runtime
 
-#endif // GENGODB_RUNTIME_GRAPH_PROPERTYGRAPH_H
+#endif // GENGODB_RUNTIME_PROPERTYGRAPH_H

@@ -1,9 +1,9 @@
-#ifndef GENGODB_CATALOG_GRAPHCATALOGENTRY_H
-#define GENGODB_CATALOG_GRAPHCATALOGENTRY_H
+#ifndef GENGODB_GRAPHCATALOGENTRY_H
+#define GENGODB_GRAPHCATALOGENTRY_H
 
 #include "lingodb/catalog/Catalog.h"
 #include "gengodb/RdfGraph.h"
-#include "gengodb/TurtleFileRef.h"
+#include "gengodb/CreateRdfGraphDef.h"
 
 #include <rdf4cpp.hpp>
 
@@ -46,8 +46,8 @@ class RDFGraphCatalogEntry : public GraphCatalogEntry {
     virtual void ensureFullyLoaded() override;
     virtual void setShouldPersist(bool shouldPersist) override;
     virtual void setDBDir(std::string dbDir) override;
-    static std::shared_ptr<RDFGraphCatalogEntry> createFromTurtleFileRef(const TurtleFileRef ttl);
+    static std::shared_ptr<RDFGraphCatalogEntry> createFromCreateRdfGraphDef(const CreateRdfGraphDef& def);
 };
 } // lingodb::semantics
 
-#endif // GENGODB_CATALOG_GRAPHCATALOGENTRY_H
+#endif // GENGODB_GRAPHCATALOGENTRY_H

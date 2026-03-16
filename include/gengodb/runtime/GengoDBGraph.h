@@ -1,5 +1,8 @@
+#ifndef GENGODB_RUNTIME_GENGODBGRAPH_H
+#define GENGODB_RUNTIME_GENGODBGRAPH_H
+
 #include "gengodb/runtime/PropertyGraph.h"
-#include "gengodb/TurtleFileRef.h"
+#include "gengodb/CreateRdfGraphDef.h"
 
 namespace lingodb::runtime {
 
@@ -33,7 +36,9 @@ public:
     };
     void serialize(lingodb::utility::Serializer& serializer) const;
     static std::unique_ptr<GengoDBGraph> deserialize(lingodb::utility::Deserializer& deserializer);
-    static std::unique_ptr<GengoDBGraph> create(const gengodb::catalog::TurtleFileRef& def);
+    static std::unique_ptr<GengoDBGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
 }; // GengoDBGraph
 
 } // namespace lingodb::runtime
+
+#endif // GENGODB_RUNTIME_GENGODBGRAPH_H

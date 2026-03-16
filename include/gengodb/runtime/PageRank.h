@@ -1,5 +1,5 @@
-#ifndef GENGODB_RUNTIME_GRAPH_PAGERANK_H
-#define GENGODB_RUNTIME_GRAPH_PAGERANK_H
+#ifndef GENGODB_RUNTIME_PAGERANK_H
+#define GENGODB_RUNTIME_PAGERANK_H
 
 #include "gengodb/runtime/Graph.h"
 
@@ -32,4 +32,4 @@ public:
 
 } // namespace lingodb::runtime
 
-#endif // GENGODB_RUNTIME_GRAPH_PAGERANK_H
+#endif // GENGODB_RUNTIME_PAGERANK_H

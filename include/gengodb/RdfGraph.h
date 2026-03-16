@@ -1,7 +1,7 @@
-#ifndef GENGODB_SEMANTICS_RDFGRAPH_H
-#define GENGODB_SEMANTICS_RDFGRAPH_H
+#ifndef GENGODB_RDFGRAPH_H
+#define GENGODB_RDFGRAPH_H
 
-#include "gengodb/runtime/PropertyGraph.h"
+#include "gengodb/runtime/GengoDBGraph.h"
 #include <rdf4cpp.hpp>
 
 #include <iostream>
@@ -51,26 +51,14 @@ public:
             return -1;
         return it->second;
     }
+    IRI get_iri(int32_t id) const {
+        if (static_cast<size_t>(id) > id_to_iri.size())
+            return IRI{};
+        return id_to_iri[id];
+    }
     size_t size() const { return id_to_iri.size(); }
 }; // IriDictionary
 struct RdfGraph;
-// class RdfGraphRegistry {
-// private:
-//     std::unordered_map<IRI, RdfGraph> knownGraphs;
-//     static RdfGraphRegistry* singleton_;
-// public:
-//     RdfGraphRegistry() {}
-//     ~RdfGraphRegistry() {}
-//     static RdfGraphRegistry& instance() {
-//         static RdfGraphRegistry instance;
-//         return instance;
-//     }
-//     void loadAll();
-//     RdfGraph load(const IRI& g);
-//     RdfGraph load(const std::string& file, const IRI& name, const parser::ParsingFlag parsingFlag = parser::ParsingFlag::Turtle);
-//     void add(const RdfGraph& g);
-//     RdfGraph get(const IRI& name) const;
-// };
 struct RdfDatatypeInlineHelper {
     /**
      * RDF datatype IRIs that can be inlined into the graph storage's property table
@@ -133,20 +121,14 @@ public:
 };
 struct RdfGraph {
     IRI name;
-    runtime::PropertyGraph* storage;
+    std::unique_ptr<runtime::GengoDBGraph> storage;
     IriDictionary nodes;
     IriDictionary relations;
     IriDictionary literalTypes;
     std::unordered_map<std::string_view, int32_t> bnodes;
-    RdfGraph(const IRI& name, runtime::PropertyGraph* storage) 
-        : name(name), storage(storage), nodeHelper(this) {}
-    // static RdfGraph create(const IRI& name, runtime::PropertyGraph* storage) {
-    //     RdfGraph graph(name, storage);
-    //     // RdfGraphRegistry::instance().add(graph);
-    //     return graph;
-    // }
-    // static RdfGraph create(const IRI& name, const Graph& rdfGraph);
-    // static RdfGraph create(const IRI& name, void* node_ptr, size_t node_l, void* rel_ptr, size_t rel_l, void* prop_ptr, size_t prop_l);
+    RdfGraph(const IRI& name, std::unique_ptr<runtime::GengoDBGraph> storage) 
+        : name(name), storage(std::move(storage)), nodeHelper(this) {}
+    static std::unique_ptr<RdfGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
@@ -184,4 +166,4 @@ private:
 
 }
 
-#endif // GENGODB_SEMANTICS_RDFGRAPH_H
+#endif // GENGODB_RDFGRAPH_H
