@@ -4,7 +4,8 @@
 #include "lingodb/execution/Timing.h"
 #include "lingodb/scheduler/Scheduler.h"
 #include "lingodb/utility/Setting.h"
-#include "gengodb/semantics/RdfGraph.h"
+#include "gengodb/RdfGraph.h"
+#include "gengodb/GraphCatalogEntry.h"
 
 #include <fstream>
 #include <iostream>
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
    // TODO Use Catalog for Property Graph storage
    //
    // TODO Use Catalog for RdfGraph registry...
-   gengodb::semantics::RdfGraphRegistry::instance().add(gengodb::semantics::RdfGraph::create(rdf4cpp::IRI{"foo:bar"}));
+   // gengodb::semantics::RdfGraphRegistry::instance().add(gengodb::semantics::RdfGraph::create(rdf4cpp::IRI{"foo:bar"}));
 
    lingodb::compiler::support::eval::init();
    execution::ExecutionMode runMode = execution::getExecutionMode();

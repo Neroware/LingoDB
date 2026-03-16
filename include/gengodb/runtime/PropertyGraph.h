@@ -10,7 +10,7 @@ namespace lingodb::runtime {
 //
 // The property table can hold up to 8 bytes of inlined data.
 class PropertyGraph : public Graph<property_id_t, property_id_t, uint64_t> {
-private:
+protected:
     PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
         : Graph(maxNodeCapacity, maxRelCapacity, maxPropCapacity) {}
     node_id_t getNodeId(NodeEntry* node) const;

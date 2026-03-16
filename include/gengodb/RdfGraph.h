@@ -54,23 +54,23 @@ public:
     size_t size() const { return id_to_iri.size(); }
 }; // IriDictionary
 struct RdfGraph;
-class RdfGraphRegistry {
-private:
-    std::unordered_map<IRI, RdfGraph> knownGraphs;
-    static RdfGraphRegistry* singleton_;
-public:
-    RdfGraphRegistry() {}
-    ~RdfGraphRegistry() {}
-    static RdfGraphRegistry& instance() {
-        static RdfGraphRegistry instance;
-        return instance;
-    }
-    void loadAll();
-    RdfGraph load(const IRI& g);
-    RdfGraph load(const std::string& file, const IRI& name, const parser::ParsingFlag parsingFlag = parser::ParsingFlag::Turtle);
-    void add(const RdfGraph& g);
-    RdfGraph get(const IRI& name) const;
-};
+// class RdfGraphRegistry {
+// private:
+//     std::unordered_map<IRI, RdfGraph> knownGraphs;
+//     static RdfGraphRegistry* singleton_;
+// public:
+//     RdfGraphRegistry() {}
+//     ~RdfGraphRegistry() {}
+//     static RdfGraphRegistry& instance() {
+//         static RdfGraphRegistry instance;
+//         return instance;
+//     }
+//     void loadAll();
+//     RdfGraph load(const IRI& g);
+//     RdfGraph load(const std::string& file, const IRI& name, const parser::ParsingFlag parsingFlag = parser::ParsingFlag::Turtle);
+//     void add(const RdfGraph& g);
+//     RdfGraph get(const IRI& name) const;
+// };
 struct RdfDatatypeInlineHelper {
     /**
      * RDF datatype IRIs that can be inlined into the graph storage's property table
@@ -140,14 +140,13 @@ struct RdfGraph {
     std::unordered_map<std::string_view, int32_t> bnodes;
     RdfGraph(const IRI& name, runtime::PropertyGraph* storage) 
         : name(name), storage(storage), nodeHelper(this) {}
-    static RdfGraph create(const IRI& name) {
-        auto* storage = runtime::PropertyGraph::create(DEFAULT_CAPACITY, DEFAULT_CAPACITY, DEFAULT_CAPACITY);
-        RdfGraph graph(name, storage);
-        RdfGraphRegistry::instance().add(graph);
-        return graph;
-    }
-    static RdfGraph create(const IRI& name, const Graph& rdfGraph);
-    static RdfGraph create(const IRI& name, void* node_ptr, size_t node_l, void* rel_ptr, size_t rel_l, void* prop_ptr, size_t prop_l);
+    // static RdfGraph create(const IRI& name, runtime::PropertyGraph* storage) {
+    //     RdfGraph graph(name, storage);
+    //     // RdfGraphRegistry::instance().add(graph);
+    //     return graph;
+    // }
+    // static RdfGraph create(const IRI& name, const Graph& rdfGraph);
+    // static RdfGraph create(const IRI& name, void* node_ptr, size_t node_l, void* rel_ptr, size_t rel_l, void* prop_ptr, size_t prop_l);
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
@@ -179,7 +178,6 @@ struct RdfGraph {
     int32_t nodeId(const IRI& res) const { return nodes.get_safe(res); }
     int32_t relationId(const IRI& iri) const { return relations.get_safe(iri); }
     int32_t typeId(const IRI& t) const { return literalTypes.get_safe(t); }
-    static const size_t DEFAULT_CAPACITY = 1024;
 private:
     NodeHelper nodeHelper;
 };

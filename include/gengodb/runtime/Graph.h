@@ -66,13 +66,13 @@ struct Graph : public GraphBase {
         properties(maxPropCapacity) {}
 }; // Graph
 // A basic graph without a property table using i64 as property value
-class GengoDBGraph : public Graph<uint64_t, uint64_t> {
+class SimpleGraph : public Graph<uint64_t, uint64_t> {
 private:
     node_id_t getNodeId(NodeEntry* node) const;
     NodeEntry* getNode(node_id_t node) const;
     relation_id_t getRelationshipId(RelationshipEntry* rel) const;
     RelationshipEntry* getRelationship(relation_id_t rel) const;
-    GengoDBGraph(size_t maxNodeCapacity, size_t maxRelCapacity)
+    SimpleGraph(size_t maxNodeCapacity, size_t maxRelCapacity)
         : Graph(maxNodeCapacity, maxRelCapacity, 1) {}
 public:
     node_id_t addNode();
@@ -85,9 +85,9 @@ public:
     uint64_t getRelationshipValue(relation_id_t edge) const;
     size_t getNodeCount() const { return nodeCounter; }
     size_t getRelCount() const { return relCounter; }
-    static GengoDBGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
-    static void destroy(GengoDBGraph* graph) { delete graph; }
-}; // GengoDBGraph
+    static SimpleGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
+    static void destroy(SimpleGraph* graph) { delete graph; }
+}; // SimpleGraph
 struct GraphStorageHelper {
     struct GraphStorageData {
         GraphBase* graphPtr;

@@ -1,0 +1,2 @@
+#include "gengodb/GraphCatalogEntry.h"
+

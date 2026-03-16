@@ -35,7 +35,7 @@
 #include "lingodb/compiler/runtime/Tracing.h"
 #include "lingodb/gengodb/runtime/Graph.h"
 #include "lingodb/gengodb/runtime/PropertyGraph.h"
-#include "gengodb/semantics/RdfGraph.h"
+#include "gengodb/RdfGraph.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -4256,7 +4256,7 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
          mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
          mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
          testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
-         g = rt::GengoDBGraph::create(rewriter, loc)({nNodes, nEdges})[0];
+         g = rt::SimpleGraph::create(rewriter, loc)({nNodes, nEdges})[0];
       }
       rewriter.replaceOp(createOp, g);
       return mlir::success();

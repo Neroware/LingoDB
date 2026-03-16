@@ -5,19 +5,19 @@
 
 namespace lingodb::runtime {
 
-node_id_t GengoDBGraph::getNodeId(NodeEntry* node) const {
+node_id_t SimpleGraph::getNodeId(NodeEntry* node) const {
     return node - nodes.ptr;
 }
-GengoDBGraph::NodeEntry* GengoDBGraph::getNode(node_id_t node) const {
+SimpleGraph::NodeEntry* SimpleGraph::getNode(node_id_t node) const {
     return nodes.ptr + node;
 }
-relation_id_t GengoDBGraph::getRelationshipId(GengoDBGraph::RelationshipEntry* rel) const {
+relation_id_t SimpleGraph::getRelationshipId(SimpleGraph::RelationshipEntry* rel) const {
     return rel - relationships.ptr;
 }
-GengoDBGraph::RelationshipEntry* GengoDBGraph::getRelationship(relation_id_t rel) const {
+SimpleGraph::RelationshipEntry* SimpleGraph::getRelationship(relation_id_t rel) const {
     return relationships.ptr + rel;
 }
-node_id_t GengoDBGraph::addNode() {
+node_id_t SimpleGraph::addNode() {
     NodeEntry* node;
     if (unusedNodeEntries.empty()) {
         node = nodes.getPtr(nodeCounter++);
@@ -33,7 +33,7 @@ node_id_t GengoDBGraph::addNode() {
     node->nextPropId = 0;
     return nodeId;
 }
-relation_id_t GengoDBGraph::addRelationship(node_id_t from, node_id_t to) {
+relation_id_t SimpleGraph::addRelationship(node_id_t from, node_id_t to) {
     RelationshipEntry* rel;
     NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
     if (unusedRelEntries.empty()) {
@@ -82,26 +82,26 @@ relation_id_t GengoDBGraph::addRelationship(node_id_t from, node_id_t to) {
     }
     return relId;
 }
-node_id_t GengoDBGraph::removeNode(node_id_t node) {
+node_id_t SimpleGraph::removeNode(node_id_t node) {
     assert(false && "not impelemented"); // TODO implement
 }
-relation_id_t GengoDBGraph::removeRelationship(relation_id_t rel) {
+relation_id_t SimpleGraph::removeRelationship(relation_id_t rel) {
     assert(false && "not impelemented"); // TODO implement
 }
-void GengoDBGraph::setNodeValue(node_id_t node, uint64_t value) const { 
+void SimpleGraph::setNodeValue(node_id_t node, uint64_t value) const { 
     getNode(node)->nextPropId = value;
 }
-void GengoDBGraph::setRelationshipValue(relation_id_t edge, uint64_t value) const { 
+void SimpleGraph::setRelationshipValue(relation_id_t edge, uint64_t value) const { 
     getRelationship(edge)->nextPropId = value; 
 }
-uint64_t GengoDBGraph::getNodeValue(node_id_t node) const { 
+uint64_t SimpleGraph::getNodeValue(node_id_t node) const { 
     return getNode(node)->nextPropId; 
 }
-uint64_t GengoDBGraph::getRelationshipValue(relation_id_t edge) const { 
+uint64_t SimpleGraph::getRelationshipValue(relation_id_t edge) const { 
     return getRelationship(edge)->nextPropId; 
 }
-GengoDBGraph* GengoDBGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
-    GengoDBGraph* g = new GengoDBGraph(initialNodeCapacity, initialRelationshipCapacity);
+SimpleGraph* SimpleGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
+    SimpleGraph* g = new SimpleGraph(initialNodeCapacity, initialRelationshipCapacity);
     GraphStorageHelper::addGraph(g, initialNodeCapacity, initialRelationshipCapacity, 1);
     return g;
 }
@@ -258,7 +258,7 @@ PageRankGraph* PageRankGraph::create(size_t initialNodeCapacity, size_t initialR
 }
 
 GraphBase* createDefaultTestGraph() {
-    auto g = GengoDBGraph::create(16, 256);
+    auto g = SimpleGraph::create(16, 256);
     for (int i = 0; i < 6; i++) {
         g->addNode();
     }

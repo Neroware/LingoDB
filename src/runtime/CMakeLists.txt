@@ -37,6 +37,7 @@ add_library(runtime OBJECT
         storage/LingoDBTable.cpp
         ../gengodb/runtime/Graph.cpp
         ../gengodb/runtime/PropertyGraph.cpp
+        ../gengodb/runtime/GengoDBGraph.cpp
 )
 set(COMPILE_DEFS "")
 if (ENABLE_GPU_BACKEND)
