@@ -12,10 +12,6 @@ void GengoDBGraph::flush() {
     assert(false && "not implemented");
 }
 void GengoDBGraph::ensureLoaded() {
-    if (nodeCounter > 0) {
-        loaded = true;
-        return;
-    }
     if (!loaded) {
         loaded = true;
         if (fileName.empty() || dbDir.empty()) {
@@ -37,7 +33,7 @@ std::unique_ptr<GengoDBGraph> GengoDBGraph::deserialize(lingodb::utility::Deseri
     return nullptr;
 }
 std::unique_ptr<GengoDBGraph> GengoDBGraph::create(std::string name) {
-    auto g = std::make_unique<GengoDBGraph>(name + ".dat");
+    auto g = std::make_unique<GengoDBGraph>(name);
     GraphStorageHelper::addGraph(g.get(), GengoDBGraph::DEFAULT_CAPACITY, GengoDBGraph::DEFAULT_CAPACITY, GengoDBGraph::DEFAULT_CAPACITY);
     return g;
 }

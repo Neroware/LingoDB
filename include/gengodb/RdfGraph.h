@@ -130,7 +130,7 @@ private:
     std::unordered_map<std::string_view, int32_t> bnodes;
 public:
     RdfGraph(const IRI& iri, std::unique_ptr<runtime::GengoDBGraph> storage, std::string fileName) 
-        : iri(iri), storage(std::move(storage)), persist(false), fileName(std::move(fileName)), nodeHelper(this) {}
+        : iri(iri), storage(std::move(storage)), persist(false), fileName(std::move(fileName)), loadedFromRdfFile(false), rdfFormat(parser::ParsingFlag::Turtle), nodeHelper(this) {}
     void setPersist(bool persist) {
         this->persist = persist;
         if (persist) {
@@ -145,9 +145,15 @@ public:
     void ensureLoaded();
     virtual void setDBDir(std::string dbDir) {
         this->dbDir = dbDir;
-    };
+    }
+    virtual void setLoadedFromRdfFile(bool loadedFromRdfFile) {
+        this->loadedFromRdfFile = loadedFromRdfFile;
+    }
+    virtual void setRdfFileFormat(parser::ParsingFlag rdfFormat) {
+        this->rdfFormat = rdfFormat;
+    }
     static std::unique_ptr<RdfGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
-    static std::unique_ptr<RdfGraph> loadRdf(const gengodb::catalog::CreateRdfGraphDef& def);
+    void loadRdf();
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
@@ -180,11 +186,17 @@ public:
     const IriDictionary& getRelations() const { return relations; }
     const IriDictionary& getLiteralTypes() const { return literalTypes; }
     const std::unordered_map<std::string_view, int32_t>& getBlankNodes() const { return bnodes; }
+    void serialize(lingodb::utility::Serializer& serializer) const;
+    static std::unique_ptr<RdfGraph> deserialize(lingodb::utility::Deserializer& deserializer);
 private:
     bool persist;
     std::string fileName;
     std::string dbDir;
+    bool loadedFromRdfFile;
+    parser::ParsingFlag rdfFormat;
     
+    bool loaded = false;
+
     NodeHelper nodeHelper;
     friend class NodeHelper;
 };
