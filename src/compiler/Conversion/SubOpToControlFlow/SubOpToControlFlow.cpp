@@ -35,7 +35,7 @@
 #include "lingodb/compiler/runtime/Tracing.h"
 #include "lingodb/gengodb/runtime/Graph.h"
 #include "lingodb/gengodb/runtime/PropertyGraph.h"
-#include "gengodb/RdfGraph.h"
+#include "lingodb/gengodb/runtime/GraphHelper.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -4245,17 +4245,15 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       if (!graphType) return failure();
       auto loc = createOp->getLoc();
       EntryStorageHelper storageHelper(createOp, graphType.getMembers(), graphType.hasLock(), typeConverter);
-      auto graphTestAttr = createOp->getAttrOfType<IntegerAttr>("testgraph");
+      auto name = createOp.getName();
       mlir::Value g;
-      mlir::Value testgraph;
-      if (graphTestAttr) {
-         testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), graphTestAttr.getInt()));
-         g = rt::GraphStorageHelper::createTestGraph(rewriter, loc)({testgraph})[0];
+      if (name.str().empty()) {
+         auto graphId = rewriter.create<util::CreateConstVarLen>(loc, util::VarLen32Type::get(rewriter.getContext()), rewriter.getStringAttr(createOp.getGraphId()));
+         g = rt::GraphHelper::createBuiltinGraph(rewriter, loc)({graphId})[0];
       }
       else {
          mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
          mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
-         testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
          g = rt::SimpleGraph::create(rewriter, loc)({nNodes, nEdges})[0];
       }
       rewriter.replaceOp(createOp, g);

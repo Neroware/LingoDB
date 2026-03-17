@@ -1,7 +1,8 @@
-#ifndef GENGODB_RUNTIME_PAGERANK_H
-#define GENGODB_RUNTIME_PAGERANK_H
+#ifndef GENGODB_RUNTIME_GRAPHHELPER_H
+#define GENGODB_RUNTIME_GRAPHHELPER_H
 
 #include "gengodb/runtime/Graph.h"
+#include "gengodb/runtime/PropertyGraph.h"
 
 namespace lingodb::runtime {
 
@@ -29,7 +30,11 @@ public:
     static PageRankGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity);
     static void destroy(PageRankGraph* graph) { delete graph; }
 }; // PageRankGraph
+struct GraphHelper {
+    static GraphBase* createBuiltinGraph(lingodb::runtime::VarLen32 graph);
+    static void createGraph(lingodb::runtime::VarLen32 meta);
+}; // GraphHelper
 
 } // namespace lingodb::runtime
 
-#endif // GENGODB_RUNTIME_PAGERANK_H
+#endif // GENGODB_RUNTIME_GRAPHHELPER_H

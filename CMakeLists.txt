@@ -127,6 +127,7 @@ gen_rt_def(lock-rt-defs "EntryLock.h")
 gen_rt_def(tracing-rt-defs "Tracing.h")
 gen_rt_def(graph-rt-defs "../../gengodb/runtime/Graph.h")
 gen_rt_def(propgraph-rt-defs "../../gengodb/runtime/PropertyGraph.h")
+gen_rt_def(graph-helper-rt-defs "../../gengodb/runtime/GraphHelper.h")
 message("cpp files ${runtime_funcs_ptr_libs}")
 string(REPLACE " " ";" runtime_funcs_ptr_libs "${runtime_funcs_ptr_libs}")
 

@@ -134,7 +134,6 @@ struct GraphStorageHelper {
     static relation_id_t getRelationshipId(uint8_t* rel);
     static property_id_t getPropId(uint8_t* prop);
     static uint8_t* getRelationshipLListHeadOf(uint8_t* node);
-    static GraphBase* createTestGraph(uint64_t whichOne);
 protected:
     // Based on an address in memory, determine the graph storage
     static const GraphStorageData& getGraphInfo(uint8_t* ref) {

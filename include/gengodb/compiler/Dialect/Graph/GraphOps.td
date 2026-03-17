@@ -20,8 +20,9 @@ class Graph_Op<string mnemonic, list<Trait> traits = []> : Op<Graph_Dialect, mne
 
 def CreateGraphOp : Graph_Op<"subop.create_graph", [Pure,StateCreator]> {
     let summary = "create new graph";
+    let arguments = (ins StrAttr : $name, StrAttr : $graphId);
     let results = (outs Graph : $res);
-    let assemblyFormat = [{ type($res) attr-dict }];
+    let assemblyFormat = [{ $name `,` `iri` `=` $graphId `:` type($res) attr-dict }];
 }
 
 def ScanGraphOp : Graph_Op<"subop.scan_graph", [Pure,SubOperator,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
