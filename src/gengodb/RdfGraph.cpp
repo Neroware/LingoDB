@@ -56,11 +56,10 @@ void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const BlankNode& o) {
 void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const Literal& o) {
     nodeHelper.addLiteral(nodeHelper.resolveNode(s), nodeHelper.resolvePredicate(p), o);
 }
-std::unique_ptr<RdfGraph> RdfGraph::create(const gengodb::catalog::CreateRdfGraphDef& def) {
+std::unique_ptr<RdfGraph> RdfGraph::loadRdf(const gengodb::catalog::CreateRdfGraphDef& def) {
     auto storage = runtime::GengoDBGraph::create(def.name);
-    auto dbDir = storage->getDBDir();
-    auto rdfGraph = std::make_unique<RdfGraph>(def.graph, std::move(storage));
-    RDFFileParser parser(dbDir + def.name + ".rdf", def.format);
+    auto rdfGraph = std::make_unique<RdfGraph>(def.graph, std::move(storage), def.name);
+    RDFFileParser parser(rdfGraph->dbDir + def.name + ".rdf", def.format);
     for (const auto &v : parser) {
         if (!v.has_value())
             break;
@@ -69,11 +68,16 @@ std::unique_ptr<RdfGraph> RdfGraph::create(const gengodb::catalog::CreateRdfGrap
     }
     return rdfGraph;
 }
-std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& iri) {
-    auto storage = runtime::GengoDBGraph::create(name);
-    auto rdfGraph = std::make_unique<RdfGraph>(iri ? iri : extra_namespaces().GENGODB + name, std::move(storage));
+std::unique_ptr<RdfGraph> RdfGraph::create(const gengodb::catalog::CreateRdfGraphDef& def) {
+    auto storage = runtime::GengoDBGraph::create(def.name);
+    auto rdfGraph = std::make_unique<RdfGraph>(def.graph ? def.graph : extra_namespaces().GENGODB + def.name, std::move(storage), def.name);
     return rdfGraph;
 }
-
+void RdfGraph::flush() {
+    storage->flush();
+}
+void RdfGraph::ensureLoaded() {
+    storage->ensureLoaded();
+}
 
 } // lingodb::semantics

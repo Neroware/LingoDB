@@ -8,7 +8,7 @@
 #include <rdf4cpp.hpp>
 
 namespace gengodb::semantics {
-struct RdfGraph;
+class RdfGraph;
 } // namespace gengodb::semantics
 
 namespace gengodb::catalog {

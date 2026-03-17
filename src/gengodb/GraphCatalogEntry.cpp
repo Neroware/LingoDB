@@ -14,32 +14,32 @@ std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(lingodb:
     return nullptr;
 }
 IRI RDFGraphCatalogEntry::getNodeIri(int32_t node) const {
-    return impl->nodes.get_iri(node);
+    return impl->getNodes().get_iri(node);
 }
 IRI RDFGraphCatalogEntry::getRelationIri(int32_t rel) const {
-    return impl->relations.get_iri(rel);
+    return impl->getRelations().get_iri(rel);
 }
 std::string_view RDFGraphCatalogEntry::getLocalId(int32_t node) const {
-    for (const auto& pair : impl->bnodes) {
+    for (const auto& pair : impl->getBlankNodes()) {
         if (pair.second == node) 
             return pair.first;
     }
     return "";
 }
 lingodb::runtime::PropertyGraph& RDFGraphCatalogEntry::getStorage() {
-    return *(impl->storage);
+    return impl->getStorage();
 }
 void RDFGraphCatalogEntry::flush() {
-    impl->storage->flush();
+    impl->flush();
 }    
 void RDFGraphCatalogEntry::ensureFullyLoaded() {
-    impl->storage->ensureLoaded();
+    impl->ensureLoaded();
 }
 void RDFGraphCatalogEntry::setShouldPersist(bool shouldPersist) {
-    impl->storage->setPersist(shouldPersist);
+    impl->setPersist(shouldPersist);
 }
 void RDFGraphCatalogEntry::setDBDir(std::string dbDir) {
-    impl->storage->setDBDir(dbDir);
+    impl->setDBDir(dbDir);
 }
 std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfGraphDef(const CreateRdfGraphDef& def, bool useRdfFilePreload) {
     std::unique_ptr<gengodb::semantics::RdfGraph> impl;
@@ -47,7 +47,7 @@ std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfG
         impl = gengodb::semantics::RdfGraph::create(def);
     }
     else {
-        impl = gengodb::semantics::RdfGraph::create(def.name, def.graph);
+        impl = gengodb::semantics::RdfGraph::loadRdf(def);
     }
     auto res = std::make_shared<RDFGraphCatalogEntry>(def.name, def.graph, std::move(impl));
     return res;

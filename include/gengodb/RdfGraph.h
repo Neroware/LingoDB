@@ -59,7 +59,7 @@ public:
     }
     size_t size() const { return id_to_iri.size(); }
 }; // IriDictionary
-struct RdfGraph;
+class RdfGraph;
 struct RdfDatatypeInlineHelper {
     /**
      * RDF datatype IRIs that can be inlined into the graph storage's property table
@@ -120,17 +120,34 @@ public:
     inline int32_t resolvePredicate(const IRI& p);
     inline void addLiteral(int32_t sid, int32_t pid, const Literal& o);
 };
-struct RdfGraph {
+class RdfGraph {
+private:
     IRI iri;
     std::unique_ptr<runtime::GengoDBGraph> storage;
     IriDictionary nodes;
     IriDictionary relations;
     IriDictionary literalTypes;
     std::unordered_map<std::string_view, int32_t> bnodes;
-    RdfGraph(const IRI& iri, std::unique_ptr<runtime::GengoDBGraph> storage) 
-        : iri(iri), storage(std::move(storage)), nodeHelper(this) {}
+public:
+    RdfGraph(const IRI& iri, std::unique_ptr<runtime::GengoDBGraph> storage, std::string fileName) 
+        : iri(iri), storage(std::move(storage)), persist(false), fileName(std::move(fileName)), nodeHelper(this) {}
+    void setPersist(bool persist) {
+        this->persist = persist;
+        if (persist) {
+            flush();
+        }
+    }
+    virtual ~RdfGraph() = default;
+    runtime::GengoDBGraph& getStorage() const { return *storage; }
+    // flushes the data to disk
+    void flush();
+    // ensures that the data is loaded
+    void ensureLoaded();
+    virtual void setDBDir(std::string dbDir) {
+        this->dbDir = dbDir;
+    };
     static std::unique_ptr<RdfGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
-    static std::unique_ptr<RdfGraph> create(const std::string& name, const IRI& iri = IRI{});
+    static std::unique_ptr<RdfGraph> loadRdf(const gengodb::catalog::CreateRdfGraphDef& def);
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
@@ -159,11 +176,17 @@ struct RdfGraph {
     void addTriple(const BlankNode& s, const IRI& p, const IRI& o);
     void addTriple(const BlankNode& s, const IRI& p, const BlankNode& o);
     void addTriple(const BlankNode& s, const IRI& p, const Literal& o);
-    int32_t nodeId(const IRI& res) const { return nodes.get_safe(res); }
-    int32_t relationId(const IRI& iri) const { return relations.get_safe(iri); }
-    int32_t typeId(const IRI& t) const { return literalTypes.get_safe(t); }
+    const IriDictionary& getNodes() const { return nodes; }
+    const IriDictionary& getRelations() const { return relations; }
+    const IriDictionary& getLiteralTypes() const { return literalTypes; }
+    const std::unordered_map<std::string_view, int32_t>& getBlankNodes() const { return bnodes; }
 private:
+    bool persist;
+    std::string fileName;
+    std::string dbDir;
+    
     NodeHelper nodeHelper;
+    friend class NodeHelper;
 };
 
 }
