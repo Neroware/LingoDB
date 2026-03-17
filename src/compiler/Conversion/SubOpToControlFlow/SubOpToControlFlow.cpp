@@ -1,7 +1,7 @@
 #include "lingodb/compiler/Conversion/SubOpToControlFlow/SubOpToControlFlowPass.h"
 
 #include "lingodb/compiler/Conversion/UtilToLLVM/Passes.h"
-#include "lingodb/compiler/Conversion/GraphToControlFlow/GraphHelpers.h"
+#include "gengodb/compiler/Conversion/GraphToControlFlow/GraphHelpers.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowDialect.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowOps.h"
 #include "lingodb/compiler/Dialect/DB/IR/DBDialect.h"
@@ -15,8 +15,8 @@
 #include "lingodb/compiler/Dialect/util/UtilOps.h"
 #include "lingodb/compiler/runtime/ArrowColumn.h"
 #include "lingodb/compiler/runtime/ArrowTable.h"
-#include "lingodb/compiler/Dialect/Graph/GraphDialect.h"
-#include "lingodb/compiler/Dialect/Graph/GraphOps.h"
+#include "gengodb/compiler/Dialect/Graph/GraphDialect.h"
+#include "gengodb/compiler/Dialect/Graph/GraphOps.h"
 #include "lingodb/compiler/runtime/Buffer.h"
 #include "lingodb/compiler/runtime/DataSourceIteration.h"
 #include "lingodb/compiler/runtime/EntryLock.h"
@@ -33,8 +33,9 @@
 #include "lingodb/compiler/runtime/SimpleState.h"
 #include "lingodb/compiler/runtime/ThreadLocal.h"
 #include "lingodb/compiler/runtime/Tracing.h"
-#include "lingodb/compiler/runtime/Graph/Graph.h"
-#include "lingodb/compiler/runtime/Graph/PropertyGraph.h"
+#include "lingodb/gengodb/runtime/Graph.h"
+#include "lingodb/gengodb/runtime/PropertyGraph.h"
+#include "gengodb/RdfGraph.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
@@ -65,6 +66,7 @@ using namespace mlir;
 #endif
 namespace {
 using namespace lingodb::compiler::dialect;
+using namespace gengodb::compiler::dialect;
 namespace rt = lingodb::compiler::runtime;
 using Member = subop::Member;
 struct SubOpToControlFlowLoweringPass
@@ -4254,7 +4256,7 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
          mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
          mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
          testgraph = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
-         g = rt::GengoDBGraph::create(rewriter, loc)({nNodes, nEdges})[0];
+         g = rt::SimpleGraph::create(rewriter, loc)({nNodes, nEdges})[0];
       }
       rewriter.replaceOp(createOp, g);
       return mlir::success();
