@@ -5,11 +5,13 @@
 
 namespace lingodb::runtime {
 
+typedef uint32_t property_t;
+
 // Implementation of a native property graph following Graph Databases, 2nd Edition by Ian Robinson, Jim Webber & Emil Eifrem
 // See: https://www.oreilly.com/library/view/graph-databases-2nd/9781491930885/ (Figure 6-4)
 //
-// The property table can hold up to 8 bytes of inlined data.
-class PropertyGraph : public Graph<property_id_t, property_id_t, uint64_t> {
+// The property table can hold up to 4 bytes of inlined data.
+class PropertyGraph : public Graph<property_id_t, property_id_t, property_t> {
 protected:
     PropertyGraph(size_t maxNodeCapacity, size_t maxRelCapacity, size_t maxPropCapacity) 
         : Graph(maxNodeCapacity, maxRelCapacity, maxPropCapacity) {}
@@ -25,10 +27,10 @@ public:
     relation_id_t addRelationship(node_id_t from, node_id_t to, relation_type_id_t type);
     node_id_t removeNode(node_id_t node);
     relation_id_t removeRelationship(relation_id_t rel);
-    property_id_t addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, uint64_t initial_value = 0);
-    property_id_t addRelationshipProperty(relation_id_t rel, property_key_t key, property_type_id_t type, uint64_t initial_value = 0);
+    property_id_t addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, property_t initial_value = 0);
+    property_id_t addRelationshipProperty(relation_id_t rel, property_key_t key, property_type_id_t type, property_t initial_value = 0);
     property_id_t removeProperty(property_id_t prop);
-    void setProperty(property_id_t prop, uint64_t value);
+    void setProperty(property_id_t prop, property_t value);
     static PropertyGraph* create(size_t initialNodeCapacity, size_t initialRelationshipCapacity, size_t initialPropertyCapacity);
     static void destroy(PropertyGraph* graph) { delete graph; }
 }; // PropertyGraph

@@ -965,8 +965,7 @@ static mlir::TupleType getPropertyType(graph::TypedPropertyRefType t, mlir::Type
 static mlir::TupleType getPropertyEntryType(graph::PropertyRefType t, mlir::TypeConverter& converter) {
    auto i1Type = IntegerType::get(t.getContext(), 1);
    auto i32Type = IntegerType::get(t.getContext(), 32);
-   auto i64Type = IntegerType::get(t.getContext(), 64);
-   return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i64Type});
+   return mlir::TupleType::get(t.getContext(), {i1Type, i32Type, i32Type, i32Type, i32Type, i32Type});
 }
 static mlir::TupleType getPropNodeEntryType(mlir::MLIRContext* ctxt) {
    auto i1Type = IntegerType::get(ctxt, 1);
@@ -5217,7 +5216,7 @@ class CastPropertyRefLowering : public SubOpTupleStreamConsumerConversionPattern
       if (!typedRefType) return failure();
       auto propType = getPropertyType(typedRefType, *typeConverter);
       if (isInlined(propType)) {
-         auto prop = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI64Type()), ref, graph::PROPERTY_ENTRY_PROPERTY_VALUE_PTR);
+         auto prop = rewriter.create<util::TupleElementPtrOp>(loc, util::RefType::get(ctxt, rewriter.getI32Type()), ref, graph::PROPERTY_ENTRY_PROPERTY_VALUE_PTR);
          auto propRef = rewriter.create<util::GenericMemrefCastOp>(loc, util::RefType::get(ctxt, propType), prop);
          mapping.define(castOp.getTypedRef(), propRef);
          rewriter.replaceTupleStream(castOp, mapping);

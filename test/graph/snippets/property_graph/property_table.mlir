@@ -11,20 +11,20 @@ module {
             %vx_id = subop.gather %vx @nodes::@ref { node_id => @nodes::@id({type = i32}) }
             %px = subop.gather %vx_id @nodes::@ref { property => @props::@set({type = !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]>}) }
             %props = subop.nested_map %px [@props::@set] (%arg0, %arg1){
-                %prop_stream0 = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]> @props::@refs({type = !graph.property_ref<[property_i64 : i64]>})
-                %prop_stream1 = graph.cast_property_ref %prop_stream0 @props::@refs -> @props::@refsI64({type = !graph.typed_property_ref<[property_i64 : i64]>})
+                %prop_stream0 = graph.subop.scan_property_set %arg1 : !graph.property_set<[prop_it : !graph.graph_set_iterator<["node"]>]> @props::@refs({type = !graph.property_ref<[property_i32 : i32]>})
+                %prop_stream1 = graph.cast_property_ref %prop_stream0 @props::@refs -> @props::@refsI32({type = !graph.typed_property_ref<[property_i32 : i32]>})
                 tuples.return %prop_stream1 : !tuples.tuplestream
             }
 
-            %result_props = subop.gather %props @props::@refsI64 {property_i64 => @props::@result({type = i64})}
+            %result_props = subop.gather %props @props::@refsI32 {property_i32 => @props::@result({type = i32})}
 
-            %0 = subop.create !subop.result_table<[int32p0 : i32, int64p1 : i64]>
-            subop.materialize %result_props {@nodes::@id => int32p0, @props::@result => int64p1}, %0 : !subop.result_table<[int32p0 : i32, int64p1 : i64]>
-            %res = subop.create_from ["int32", "int64"] %0 : !subop.result_table<[int32p0 : i32, int64p1 : i64]> -> !subop.local_table<[int32p0 : i32, int64p1 : i64], ["int32", "int64"]>
-            subop.execution_group_return %res : !subop.local_table<[int32p0 : i32, int64p1 : i64], ["int32", "int64"]>
+            %0 = subop.create !subop.result_table<[int32p0 : i32, int32p1 : i32]>
+            subop.materialize %result_props {@nodes::@id => int32p0, @props::@result => int32p1}, %0 : !subop.result_table<[int32p0 : i32, int32p1 : i32]>
+            %res = subop.create_from ["int32", "int32"] %0 : !subop.result_table<[int32p0 : i32, int32p1 : i32]> -> !subop.local_table<[int32p0 : i32, int32p1 : i32], ["int32", "int32"]>
+            subop.execution_group_return %res : !subop.local_table<[int32p0 : i32, int32p1 : i32], ["int32", "int32"]>
         
-        } -> !subop.table<[int32n0 : i32, int64n1 : i64]>
-        subop.set_result 0 %subop_result : !subop.table<[int32n0 : i32, int64n1 : i64]>
+        } -> !subop.table<[int32n0 : i32, int32n1 : i32]>
+        subop.set_result 0 %subop_result : !subop.table<[int32n0 : i32, int32n1 : i32]>
         return
     }
 }

@@ -23,7 +23,7 @@ PropertyGraph::PropertyEntry* PropertyGraph::getProperty(property_id_t prop) con
 property_id_t PropertyGraph::removeProperty(property_id_t prop) {
     assert(false && "not impelemented"); // TODO implement
 }
-void PropertyGraph::setProperty(property_id_t prop, uint64_t value) {
+void PropertyGraph::setProperty(property_id_t prop, property_t value) {
     properties.at(prop).value = value;
 }
 node_id_t PropertyGraph::addNode() {
@@ -97,7 +97,7 @@ node_id_t PropertyGraph::removeNode(node_id_t node) {
 relation_id_t PropertyGraph::removeRelationship(relation_id_t rel) {
     assert(false && "not impelemented"); // TODO implement
 }
-property_id_t PropertyGraph::addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, uint64_t initial_value) {
+property_id_t PropertyGraph::addNodeProperty(node_id_t node, property_key_t key, property_type_id_t type, property_t initial_value) {
     PropertyEntry* prop;
     if (unusedPropEntries.empty()) {
         prop = properties.getPtr(propCounter++);
@@ -122,7 +122,7 @@ property_id_t PropertyGraph::addNodeProperty(node_id_t node, property_key_t key,
     nodeEntry->nextPropId = propId;
     return propId;
 }
-property_id_t PropertyGraph::addRelationshipProperty(relation_id_t rel, property_key_t key, property_type_id_t type, uint64_t initial_value) {
+property_id_t PropertyGraph::addRelationshipProperty(relation_id_t rel, property_key_t key, property_type_id_t type, property_t initial_value) {
     PropertyEntry* prop;
     if (unusedPropEntries.empty()) {
         prop = properties.getPtr(propCounter++);
