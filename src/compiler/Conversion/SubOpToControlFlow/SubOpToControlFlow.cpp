@@ -4244,18 +4244,24 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       auto graphType = mlir::dyn_cast_or_null<graph::GraphType>(createOp.getType());
       if (!graphType) return failure();
       auto loc = createOp->getLoc();
-      EntryStorageHelper storageHelper(createOp, graphType.getMembers(), graphType.hasLock(), typeConverter);
-      auto name = createOp.getName();
-      mlir::Value g;
-      if (name.str().empty()) {
-         auto graphId = rewriter.create<util::CreateConstVarLen>(loc, util::VarLen32Type::get(rewriter.getContext()), rewriter.getStringAttr(createOp.getGraphId()));
-         g = rt::GraphHelper::createBuiltinGraph(rewriter, loc)({graphId})[0];
-      }
-      else {
-         mlir::Value nNodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 16));
-         mlir::Value nEdges = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), 128));
-         g = rt::SimpleGraph::create(rewriter, loc)({nNodes, nEdges})[0];
-      }
+      auto nodes = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), createOp.getNumNodes()));
+      auto rels = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), createOp.getNumRels()));
+      auto props = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI64Type(), createOp.getNumProps()));
+      auto g = rt::GraphHelper::allocAndPopulateBuiltinGraph(rewriter, loc)({nodes, rels, props})[0];
+      rewriter.replaceOp(createOp, g);
+      return mlir::success();
+   }
+};
+class CreateBuiltinGraphLowering : public SubOpConversionPattern<graph::CreateBuiltinGraphOp>{
+   public:
+   using SubOpConversionPattern<graph::CreateBuiltinGraphOp>::SubOpConversionPattern;
+   LogicalResult matchAndRewrite(graph::CreateBuiltinGraphOp createOp, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      auto graphType = mlir::dyn_cast_or_null<graph::GraphType>(createOp.getType());
+      if (!graphType) return failure();
+      auto loc = createOp->getLoc();
+      auto graphId = createOp.getGraphId();
+      auto graphIdI32 = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI32Type(), static_cast<int>(graphId)));
+      auto g = rt::GraphHelper::allocAndPopulateBuiltinGraph(rewriter, loc)({graphIdI32})[0];
       rewriter.replaceOp(createOp, g);
       return mlir::success();
    }
@@ -5305,6 +5311,7 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    rewriter.insertPattern<ScanRefsVectorLowering>(typeConverter, ctxt);
    rewriter.insertPattern<MaterializeVectorLowering>(typeConverter, ctxt);
    //Graph
+   rewriter.insertPattern<CreateBuiltinGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<CreateGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ScanGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ScanNodeSetLowering>(typeConverter, ctxt);

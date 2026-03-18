@@ -1,100 +1,16 @@
 #include "gengodb/runtime/GraphHelper.h"
 
+#include "gengodb/runtime/BuiltinGraphs.h"
+
 namespace lingodb::runtime {
 
-PageRankGraph* PageRankGraph::create(size_t initialNodeCapacity, size_t initialRelationshipCapacity) { 
-    PageRankGraph* g = new PageRankGraph(initialNodeCapacity, initialRelationshipCapacity);
-    GraphStorageHelper::addGraph(g, initialNodeCapacity, initialRelationshipCapacity, 1);
-    return g;
-}
-node_id_t PageRankGraph::getNodeId(NodeEntry* node) const {
-    return node - nodes.ptr;
-}
-PageRankGraph::NodeEntry* PageRankGraph::getNode(node_id_t node) const {
-    return nodes.ptr + node;
-}
-relation_id_t PageRankGraph::getRelationshipId(PageRankGraph::RelationshipEntry* rel) const {
-    return rel - relationships.ptr;
-}
-PageRankGraph::RelationshipEntry* PageRankGraph::getRelationship(relation_id_t rel) const {
-    return relationships.ptr + rel;
-}
-node_id_t PageRankGraph::addNode() {
-    NodeEntry* node;
-    if (unusedNodeEntries.empty()) {
-        node = nodes.getPtr(nodeCounter++);
-    }
-    else {
-        node = unusedNodeEntries.back();
-        unusedNodeEntries.pop_back();
-    }
-    assert(!node->inUse && "should not happen");
-    node_id_t nodeId = getNodeId(node);
-    node->inUse = true;
-    node->nextRelId = -1;
-    node->nextPropId = Data {0.0, 0.0, 0};
-    return nodeId;
-}
-relation_id_t PageRankGraph::addRelationship(node_id_t from, node_id_t to) {
-    RelationshipEntry* rel;
-    NodeEntry *fromNode = getNode(from), *toNode = getNode(to);
-    if (unusedRelEntries.empty()) {
-        rel = relationships.getPtr(relCounter++);
-    }
-    else {
-        rel = unusedRelEntries.back();
-        unusedRelEntries.pop_back();
-    }
-    assert(!rel->inUse && "should not happen");
-    relation_id_t relId = getRelationshipId(rel);
-    rel->inUse = true;
-    rel->firstNode = from;
-    rel->secondNode = to;
-    rel->relationshipType = 0;
-    rel->firstNextRelId = rel->firstPrevRelId = rel->secondNextRelId = rel->secondPrevRelId = -1;
-    rel->nextPropId = 0;
-    rel->firstInChainMarker = true;
-    if (fromNode->nextRelId >= 0) {
-        RelationshipEntry* head = getRelationship(fromNode->nextRelId);
-        head->firstInChainMarker = false;
-        if (head->firstNode == from) {
-            head->firstPrevRelId = relId;
-            rel->firstNextRelId = fromNode->nextRelId;
-        }
-        else {
-            head->secondPrevRelId = relId;
-            rel->firstNextRelId = fromNode->nextRelId;
-        }
-    }
-    fromNode->nextRelId = relId;
-    if (from != to) {
-        if (toNode->nextRelId >= 0) {
-            RelationshipEntry* head = getRelationship(toNode->nextRelId);
-            head->firstInChainMarker = false;
-            if (head->firstNode == to) {
-                head->firstPrevRelId = relId;
-                rel->secondNextRelId = toNode->nextRelId;   
-            }
-            else {
-                head->secondPrevRelId = relId;
-                rel->secondNextRelId = toNode->nextRelId;
-            }
-        }
-        toNode->nextRelId = relId;
-    }
-    return relId;
-}
-GraphBase* GraphHelper::createBuiltinGraph(lingodb::runtime::VarLen32 graph) {
-    const std::unordered_map<std::string, int32_t> builtin {
-        {"builtin:default", 0},
-        {"builtin:pagerank", 1},
-        {"builtin:property-graph", 2},
-    };
-    auto id_it = builtin.find(graph);
-    auto id = id_it == builtin.end() ? 0 : id_it->second;
-    switch (id) {
+GraphBase* GraphHelper::allocAndPopulateBuiltinGraph(int32_t builtin) {
+    auto* context = getCurrentExecutionContext();
+    assert(context);
+    switch (builtin) {
         case 1: {
             auto g = PageRankGraph::create(16, 256);
+            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<PageRankGraph*>(p)); }});
             for (int i = 0; i < 5; i++) {
                 g->addNode();
             }
@@ -108,6 +24,7 @@ GraphBase* GraphHelper::createBuiltinGraph(lingodb::runtime::VarLen32 graph) {
         } break;
         case 2: {
             auto g = PropertyGraph::create(16, 256, 256);
+            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<PropertyGraph*>(p)); }});
             for (int i = 0; i < 6; i++) {
                 g->addNode();
             }
@@ -133,6 +50,7 @@ GraphBase* GraphHelper::createBuiltinGraph(lingodb::runtime::VarLen32 graph) {
         } break;
         default: {
             auto g = SimpleGraph::create(16, 256);
+            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<SimpleGraph*>(p)); }});
             for (int i = 0; i < 6; i++) {
                 g->addNode();
             }
@@ -157,6 +75,13 @@ GraphBase* GraphHelper::createBuiltinGraph(lingodb::runtime::VarLen32 graph) {
             return g;
         }
     };
+}
+GraphBase* GraphHelper::allocGraphState(size_t nodeBufLen, size_t relBufLen, size_t propBufLen) {
+    auto* context = getCurrentExecutionContext();
+    assert(context);
+    auto ptr = static_cast<void*>(PropertyGraph::create(nodeBufLen, relBufLen, propBufLen));
+    context->registerState({ptr, [](void* p) { delete (static_cast<PropertyGraph*>(p)); }});
+    return static_cast<GraphBase*>(ptr);
 }
 void GraphHelper::createGraph(lingodb::runtime::VarLen32 meta) {
     

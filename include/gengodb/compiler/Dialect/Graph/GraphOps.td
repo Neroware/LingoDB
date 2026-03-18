@@ -20,9 +20,23 @@ class Graph_Op<string mnemonic, list<Trait> traits = []> : Op<Graph_Dialect, mne
 
 def CreateGraphOp : Graph_Op<"subop.create_graph", [Pure,StateCreator]> {
     let summary = "create new graph";
-    let arguments = (ins StrAttr : $name, StrAttr : $graphId);
+    let arguments = (ins I64Attr : $numNodes, I64Attr : $numRels, I64Attr : $numProps);
     let results = (outs Graph : $res);
-    let assemblyFormat = [{ `{` `name` `=`  $name `,` `uniqueId` `=` $graphId `}` `:` type($res) attr-dict }];
+    let assemblyFormat = [{ `{` `nodes` `=` $numNodes `,` `relations` `=` $numRels `,` `properties` `=` $numProps `}` `:` type($res) attr-dict }];
+}
+
+def Graph_BuiltinGraph_BASIC : I64EnumAttrCase<"standard", 0>;
+def Graph_BuiltinGraph_PAGERANK : I64EnumAttrCase<"pagerank", 1>;
+def Graph_BuiltinGraph_PROPERTYGRAPH : I64EnumAttrCase<"propertygraph", 2>;
+def Graph_BuiltinGraph : I64EnumAttr<"BuiltinGraphAttr", "",
+        [Graph_BuiltinGraph_BASIC,Graph_BuiltinGraph_PAGERANK,Graph_BuiltinGraph_PROPERTYGRAPH]> {
+    let cppNamespace = "::gengodb::compiler::dialect::graph";
+}
+def CreateBuiltinGraphOp : Graph_Op<"subop.create_builtin_graph", [Pure,StateCreator]> {
+    let summary = "create builtin graph";
+    let arguments = (ins Graph_BuiltinGraph : $graphId);
+    let results = (outs Graph : $res);
+    let assemblyFormat = [{ `{` `builtin` `=` $graphId `}` `:` type($res) attr-dict }];
 }
 
 def Graph_GraphFormat_UNDEFINED : I64EnumAttrCase<"undefined", 0>;
