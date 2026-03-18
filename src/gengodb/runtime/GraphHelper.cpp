@@ -84,7 +84,12 @@ GraphBase* GraphHelper::allocGraphState(size_t nodeBufLen, size_t relBufLen, siz
     return static_cast<GraphBase*>(ptr);
 }
 void GraphHelper::createGraph(lingodb::runtime::VarLen32 meta) {
-    
+    // TODO implement
+    assert(false && "not implemented");
+}
+GraphBase* GraphHelper::getGraph(lingodb::runtime::VarLen32 description) {
+    // TODO implement
+    assert(false && "not implemented");
 }
 
 } // namespace lingodb::runtime

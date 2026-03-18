@@ -39,9 +39,9 @@ def CreateBuiltinGraphOp : Graph_Op<"subop.create_builtin_graph", [Pure,StateCre
     let assemblyFormat = [{ `{` `builtin` `=` $graphId `}` `:` type($res) attr-dict }];
 }
 
-def Graph_GraphFormat_UNDEFINED : I64EnumAttrCase<"undefined", 0>;
-def Graph_GraphFormat_BINARY : I64EnumAttrCase<"binary", 1>;
-def Graph_GraphFormat_TURTLE : I64EnumAttrCase<"turtle", 2>;
+def Graph_GraphFormat_UNDEFINED : I64EnumAttrCase<"UNDEFINED", 0>;
+def Graph_GraphFormat_BINARY : I64EnumAttrCase<"BINARY", 1>;
+def Graph_GraphFormat_TURTLE : I64EnumAttrCase<"TTL", 2>;
 def Graph_GraphFormat : I64EnumAttr<"GraphFormatAttr", "",
         [Graph_GraphFormat_UNDEFINED,Graph_GraphFormat_BINARY,Graph_GraphFormat_TURTLE]> {
     let cppNamespace = "::gengodb::compiler::dialect::graph";
