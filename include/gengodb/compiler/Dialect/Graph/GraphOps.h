@@ -14,6 +14,7 @@
 #include "lingodb/compiler/Dialect/SubOperator/SubOperatorInterfaces.h"
 #include "lingodb/compiler/Dialect/SubOperator/SubOperatorOpsTypes.h"
 
+#include "gengodb/compiler/Dialect/Graph/GraphOpsEnums.h"
 #include "gengodb/compiler/Dialect/Graph/GraphOpsAttributes.h"
 #include "gengodb/compiler/Dialect/Graph/GraphOpsTypes.h"
 

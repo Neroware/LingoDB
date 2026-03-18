@@ -22,7 +22,21 @@ def CreateGraphOp : Graph_Op<"subop.create_graph", [Pure,StateCreator]> {
     let summary = "create new graph";
     let arguments = (ins StrAttr : $name, StrAttr : $graphId);
     let results = (outs Graph : $res);
-    let assemblyFormat = [{ $name `,` `iri` `=` $graphId `:` type($res) attr-dict }];
+    let assemblyFormat = [{ `{` `name` `=`  $name `,` `uniqueId` `=` $graphId `}` `:` type($res) attr-dict }];
+}
+
+def Graph_GraphFormat_UNDEFINED : I64EnumAttrCase<"undefined", 0>;
+def Graph_GraphFormat_BINARY : I64EnumAttrCase<"binary", 1>;
+def Graph_GraphFormat_TURTLE : I64EnumAttrCase<"turtle", 2>;
+def Graph_GraphFormat : I64EnumAttr<"GraphFormatAttr", "",
+        [Graph_GraphFormat_UNDEFINED,Graph_GraphFormat_BINARY,Graph_GraphFormat_TURTLE]> {
+    let cppNamespace = "::gengodb::compiler::dialect::graph";
+}
+def GetExternalGraphOp : Graph_Op<"subop.get_external_graph", [Pure,StateCreator]> {
+    let summary = "get external graph";
+    let arguments = (ins StrAttr : $name, StrAttr : $graphId, Graph_GraphFormat : $graphFormat);
+    let results = (outs Graph : $res);
+    let assemblyFormat = [{ `{` `name` `=`  $name `,` `uniqueId` `=` $graphId `,` `format` `=` $graphFormat `}` `:` type($res) attr-dict }];
 }
 
 def ScanGraphOp : Graph_Op<"subop.scan_graph", [Pure,SubOperator,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
