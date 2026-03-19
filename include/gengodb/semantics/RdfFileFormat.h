@@ -10,7 +10,10 @@ using namespace rdf4cpp::parser;
 enum class RDFFileFormat {
     DEFAULT,
     BINARY,
-    TURTLE
+    TURTLE,
+    NTRIPLES,
+    NQUADS,
+    RDFXML
 };
 
 inline ParsingFlag getRDFParseFlags(RDFFileFormat format) {

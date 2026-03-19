@@ -14,26 +14,81 @@
 using namespace gengodb::semantics;
 using namespace gengodb::catalog;
 
+RDFFileFormat getFormatFromExtension(const std::string& ext) {
+   if (ext == ".ttl")
+      return RDFFileFormat::TURTLE;
+   if (ext == ".nt")
+      return RDFFileFormat::NTRIPLES;
+   if (ext == ".nq")
+      return RDFFileFormat::NQUADS;
+   if (ext == ".rdf")
+      return RDFFileFormat::RDFXML;
+   throw std::runtime_error("Unsupported RDF file format: " + ext);
+}
+
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <filesystem>
+
+#include "features.h"
+#include "lingodb/compiler/mlir-support/eval.h"
+#include "lingodb/execution/Execution.h"
+#include "lingodb/scheduler/Scheduler.h"
+
+#include "gengodb/catalog/CreateRdfGraphDef.h"
+#include "gengodb/catalog/GraphCatalogEntry.h"
+#include "gengodb/semantics/RdfFileFormat.h"
+
+using namespace gengodb::semantics;
+using namespace gengodb::catalog;
+namespace fs = std::filesystem;
+
 int main(int argc, char** argv) {
    using namespace lingodb;
 
    if (argc < 2 || std::string(argv[1]) == "--help") {
-      std::cout << "Generates a LingoDB catalog from RDF files. Usage: gen-rdf-catalog [RDF_DIR]" << std::endl;
+      std::cout << "Generates a LingoDB catalog from RDF files. Usage: gen-rdf-catalog [RDF_DIR] (--prefix [RDF_PREFIX])" << std::endl;
       return 0;
    }
 
+   std::string rdfDir = argv[1];
+   std::cout << "Generating LingoDB/GengoDB catalog in directory '" << rdfDir << "'..." << std::endl;;
+
    bool eagerLoading = std::getenv("LINGODB_BACKEND_ONLY");
-   std::shared_ptr<runtime::Session> session = runtime::Session::createSession(std::string(argv[1]), eagerLoading);
+   std::shared_ptr<runtime::Session> session = runtime::Session::createSession(rdfDir, eagerLoading);
 
-   CreateRdfGraphDef def{"coffee", rdf4cpp::IRI{"https://github.com/Neroware/LingoDB/tree/rz/main/resources/ttl/coffee.ttl#rdf"}, RDFFileFormat::TURTLE};
-   auto entry = RDFGraphCatalogEntry::createFromCreateRdfGraphDef(def);
+   for (const auto& entry : fs::directory_iterator(rdfDir)) {
+      if (!entry.is_regular_file())
+         continue;
 
-   // TODO generate for all
+      std::string ext = entry.path().extension().string();
 
-   entry->setDBDir(session->getCatalog()->getDbDir());
-   entry->ensureFullyLoaded();
-   
-   // session->getCatalog()->insertEntry(entry);
+      RDFFileFormat format;
+      try {
+         format = getFormatFromExtension(ext);
+      } catch (...) {
+         continue;
+      }
+
+      std::string filePath = entry.path().string();
+      std::string name = entry.path().stem().string();
+
+      rdf4cpp::IRI iri;
+      if (argc >= 4 && std::string(argv[2]) == "--prefix") {
+         iri = IRI{argv[3] + entry.path().filename().string() + "#rdf"};
+      }
+      else {
+         iri = IRI{"file://" + filePath + "#rdf"};
+      }
+
+      CreateRdfGraphDef def{name, iri, format};
+      auto graphEntry = RDFGraphCatalogEntry::createFromCreateRdfGraphDef(def);
+
+      session->getCatalog()->insertEntry(graphEntry);
+      graphEntry->ensureFullyLoaded();
+   }
+
    session->getCatalog()->setShouldPersist(true);
    session->getCatalog()->persist();
 

@@ -72,7 +72,7 @@ void RdfGraph::loadTriples() {
 }
 std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& iri) {
     auto storage = runtime::GengoDBGraph::create(name);
-    auto rdfGraph = std::make_unique<RdfGraph>(iri ? iri : extra_namespaces().GENGODB + name, std::move(storage), name);
+    auto rdfGraph = std::make_unique<RdfGraph>(iri.null() ? extra_namespaces().GENGODB + name : iri, std::move(storage), name);
     return rdfGraph;
 }
 void RdfGraph::flush() {
