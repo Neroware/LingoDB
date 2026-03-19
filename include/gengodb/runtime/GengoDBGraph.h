@@ -2,6 +2,7 @@
 #define GENGODB_RUNTIME_GENGODBGRAPH_H
 
 #include "gengodb/runtime/PropertyGraph.h"
+#include "gengodb/GraphCatalogEntry.h"
 
 namespace lingodb::runtime {
 

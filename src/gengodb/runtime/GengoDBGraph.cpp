@@ -14,7 +14,7 @@ void GengoDBGraph::flush() {
 void GengoDBGraph::ensureLoaded() {
     if (!loaded) {
         loaded = true;
-        if (fileName.empty() || dbDir.empty()) {
+        if (nodeCounter > 0 || fileName.empty() || dbDir.empty()) {
             return;
         }
         if (!std::filesystem::exists(dbDir + "/" + fileName)) {
@@ -24,13 +24,11 @@ void GengoDBGraph::ensureLoaded() {
     }
 }
 void GengoDBGraph::serialize(lingodb::utility::Serializer& serializer) const {
-    // TODO implement
-    assert(false && "not implemented");
+    serializer.writeProperty<std::string>(1, fileName);
 }
 std::unique_ptr<GengoDBGraph> GengoDBGraph::deserialize(lingodb::utility::Deserializer& deserializer) {
-    // TODO implement
-    assert(false && "not implemented");
-    return nullptr;
+    auto fileName = deserializer.readProperty<std::string>(1);
+    return GengoDBGraph::create(fileName);
 }
 std::unique_ptr<GengoDBGraph> GengoDBGraph::create(std::string name) {
     auto g = std::make_unique<GengoDBGraph>(name);

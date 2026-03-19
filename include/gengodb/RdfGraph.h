@@ -7,6 +7,10 @@
 
 #include <iostream>
 
+namespace lingodb::runtime {
+    class GengoDBGraph;
+}
+
 namespace gengodb::semantics {
 using namespace rdf4cpp;
 using namespace lingodb;

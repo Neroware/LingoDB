@@ -6,13 +6,16 @@ using namespace gengodb::semantics;
 RDFGraphCatalogEntry::RDFGraphCatalogEntry(std::string name, std::unique_ptr<semantics::RdfGraph> impl, semantics::RDFFileFormat format) : GraphCatalogEntry(CatalogEntryType::GENGODB_GRAPH_ENTRY, name), impl(std::move(impl)), format(format) {}
 
 void RDFGraphCatalogEntry::serializeEntry(lingodb::utility::Serializer& serializer) const {
-    // TODO implement
-    assert(false && "not implemented");
+    serializer.writeProperty(2, name);
+    serializer.writeProperty(3, impl);
+    serializer.writeProperty(4, (int) format);
 }
 std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(lingodb::utility::Deserializer& deserializer) {
-    // TODO implement
-    assert(false && "not implemented");
-    return nullptr;
+    auto name = deserializer.readProperty<std::string>(2);
+    auto rdfGraph = deserializer.readProperty<std::unique_ptr<semantics::RdfGraph>>(3);
+    auto format = deserializer.readProperty<int>(4);
+
+    return std::make_shared<RDFGraphCatalogEntry>(name, std::move(rdfGraph), (RDFFileFormat) format);
 }
 IRI RDFGraphCatalogEntry::getIri() const {
     return impl->getIri();

@@ -5,6 +5,7 @@
 #include <rdf4cpp/parser/RDFFileParser.hpp>
 
 namespace gengodb::semantics {
+using namespace rdf4cpp::parser;
 
 enum class RDFFileFormat {
     DEFAULT,
@@ -12,10 +13,17 @@ enum class RDFFileFormat {
     TURTLE
 };
 
-inline rdf4cpp::parser::ParsingFlag getRDFParseFlags(RDFFileFormat format) {
+inline ParsingFlag getRDFParseFlags(RDFFileFormat format) {
     switch (format) {
-        case RDFFileFormat::TURTLE: return rdf4cpp::parser::ParsingFlag::Turtle;
-        default: return (rdf4cpp::parser::ParsingFlag) 0;
+        case RDFFileFormat::TURTLE: return ParsingFlag::Turtle;
+        default: return (ParsingFlag) 0;
+    }
+}
+
+inline std::string getRDFFileExtension(ParsingFlag flag) {
+    switch (flag) {
+        case ParsingFlag::Turtle: return ".ttl";
+        default: return ".rdf";
     }
 }
 
