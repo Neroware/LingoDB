@@ -58,15 +58,16 @@ void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const BlankNode& o) {
 void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const Literal& o) {
     nodeHelper.addLiteral(nodeHelper.resolveNode(s), nodeHelper.resolvePredicate(p), o);
 }
-void RdfGraph::loadRdf() {
-    auto storage = runtime::GengoDBGraph::create(name);
-    auto rdfGraph = std::make_unique<RdfGraph>(iri, std::move(storage), name);
-    RDFFileParser parser(dbDir + name + getRDFFileExtension(rdfParseFlags), rdfParseFlags);
+void RdfGraph::loadTriples() {
+    if (!loadedFromRdfFile) {
+        return;
+    }
+    RDFFileParser parser(dbDir + fileName + getRDFFileExtension(rdfParseFlags), rdfParseFlags);
     for (const auto &v : parser) {
         if (!v.has_value())
             break;
         auto quad = v.value();
-        rdfGraph->addTriple(quad.subject(), quad.predicate(), quad.object());
+        this->addTriple(quad.subject(), quad.predicate(), quad.object());
     }
 }
 std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& iri) {
@@ -75,13 +76,16 @@ std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& i
     return rdfGraph;
 }
 void RdfGraph::flush() {
+    if (loadedFromRdfFile) {
+        return;
+    }
     storage->flush();
 }
 void RdfGraph::ensureLoaded() {
     if (!loaded) {
         loaded = true;
         if (loadedFromRdfFile) {
-            loadRdf();
+            loadTriples();
         }
         storage->ensureLoaded();
     }

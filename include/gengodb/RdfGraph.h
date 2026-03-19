@@ -20,6 +20,7 @@ struct extra_namespaces {
     const Namespace SOBOT = Namespace("https://www.forsocialrobots.de/ontologies/sobots.owl#");
     const Namespace LINGODB = Namespace("https://www.lingo-db.com/rdf#");
     const Namespace GENGODB = Namespace("https://github.com/Neroware/LingoDB#");
+    const Namespace XSD = Namespace("http://www.w3.org/2001/XMLSchema#");
 };
 class IriDictionary {
 private:
@@ -92,7 +93,7 @@ struct RdfDatatypeInlineHelper {
      * Writes the inlined value into 'out', undefined behavior if type cannot be inlined
      */
     void inlineValue(uint64_t* out, const std::any& in, const IRI& datatype) const {
-        Namespace xsd = namespaces::XSD();
+        const Namespace xsd = extra_namespaces().XSD;
         if (datatype == xsd + "boolean")                inlineValue<bool>((bool*) out, in);
         else if (datatype == xsd + "byte")              inlineValue<int8_t>((int8_t*) out, in);
         // else if (datatype == xsd + "double")            inlineValue<double>((double*) out, in);
@@ -157,7 +158,7 @@ public:
         this->rdfParseFlags = rdfParseFlags;
     }
     static std::unique_ptr<RdfGraph> create(const std::string& name, const IRI& iri);
-    void loadRdf();
+    void loadTriples();
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
         const auto& pred = p.as_iri();
