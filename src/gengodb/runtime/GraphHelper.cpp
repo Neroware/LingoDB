@@ -1,7 +1,7 @@
 #include "gengodb/runtime/GraphHelper.h"
 
 #include "gengodb/runtime/BuiltinGraphs.h"
-#include "gengodb/GraphCatalogEntry.h"
+#include "gengodb/catalog/GraphCatalogEntry.h"
 
 namespace lingodb::runtime {
 

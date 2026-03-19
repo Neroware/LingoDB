@@ -1,4 +1,4 @@
-#include "gengodb/GraphCatalogEntry.h"
+#include "gengodb/catalog/GraphCatalogEntry.h"
 
 namespace gengodb::catalog {
 using namespace gengodb::semantics;

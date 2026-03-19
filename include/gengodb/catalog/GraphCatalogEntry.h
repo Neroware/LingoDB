@@ -2,9 +2,9 @@
 #define GENGODB_GRAPHCATALOGENTRY_H
 
 #include "lingodb/catalog/Catalog.h"
-#include "gengodb/RdfGraph.h"
-#include "gengodb/RdfFileFormat.h"
-#include "gengodb/CreateRdfGraphDef.h"
+#include "gengodb/semantics/RdfGraph.h"
+#include "gengodb/semantics/RdfFileFormat.h"
+#include "gengodb/catalog/CreateRdfGraphDef.h"
 
 #include <rdf4cpp.hpp>
 

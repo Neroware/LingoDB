@@ -7,9 +7,9 @@
 #include "lingodb/execution/Execution.h"
 #include "lingodb/scheduler/Scheduler.h"
 
-#include "gengodb/CreateRdfGraphDef.h"
-#include "gengodb/GraphCatalogEntry.h"
-#include "gengodb/RdfFileFormat.h"
+#include "gengodb/catalog/CreateRdfGraphDef.h"
+#include "gengodb/catalog/GraphCatalogEntry.h"
+#include "gengodb/semantics/RdfFileFormat.h"
 
 using namespace gengodb::semantics;
 using namespace gengodb::catalog;
@@ -27,6 +27,8 @@ int main(int argc, char** argv) {
 
    CreateRdfGraphDef def{"coffee", rdf4cpp::IRI{"https://github.com/Neroware/LingoDB/tree/rz/main/resources/ttl/coffee.ttl#rdf"}, RDFFileFormat::TURTLE};
    auto entry = RDFGraphCatalogEntry::createFromCreateRdfGraphDef(def);
+
+   // TODO generate for all
 
    entry->setDBDir(session->getCatalog()->getDbDir());
    entry->ensureFullyLoaded();

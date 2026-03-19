@@ -2,7 +2,7 @@
 #define GENGODB_CREATERDFGRAPHDEF_H
 
 #include "lingodb/utility/Serialization.h"
-#include "gengodb/RdfFileFormat.h"
+#include "gengodb/semantics/RdfFileFormat.h"
 
 namespace gengodb::catalog {
 using namespace lingodb;

@@ -4,8 +4,8 @@
 #include "lingodb/execution/Timing.h"
 #include "lingodb/scheduler/Scheduler.h"
 #include "lingodb/utility/Setting.h"
-#include "gengodb/RdfGraph.h"
-#include "gengodb/GraphCatalogEntry.h"
+#include "gengodb/semantics/RdfGraph.h"
+#include "gengodb/catalog/GraphCatalogEntry.h"
 
 #include <fstream>
 #include <iostream>

@@ -1,4 +1,4 @@
-#include "gengodb/CreateRdfGraphDef.h"
+#include "gengodb/catalog/CreateRdfGraphDef.h"
 
 void gengodb::catalog::CreateRdfGraphDef::serialize(utility::Serializer& serializer) const {
    serializer.writeProperty(1, name);

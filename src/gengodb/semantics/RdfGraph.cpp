@@ -1,6 +1,6 @@
-#include "gengodb/RdfGraph.h"
+#include "gengodb/semantics/RdfGraph.h"
 
-#include "gengodb/RdfFileFormat.h"
+#include "gengodb/semantics/RdfFileFormat.h"
 
 #include <rdf4cpp/Graph.hpp>
 #include <rdf4cpp/parser/RDFFileParser.hpp>

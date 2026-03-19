@@ -2,7 +2,7 @@
 #define GENGODB_RDFGRAPH_H
 
 #include "gengodb/runtime/GengoDBGraph.h"
-#include "gengodb/CreateRdfGraphDef.h"
+#include "gengodb/catalog/CreateRdfGraphDef.h"
 #include <rdf4cpp.hpp>
 
 #include <iostream>
