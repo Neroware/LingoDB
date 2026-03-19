@@ -130,7 +130,7 @@ private:
     std::unordered_map<std::string_view, int32_t> bnodes;
 public:
     RdfGraph(const IRI& iri, std::unique_ptr<runtime::GengoDBGraph> storage, std::string fileName) 
-        : iri(iri), storage(std::move(storage)), persist(false), fileName(std::move(fileName)), loadedFromRdfFile(false), rdfFormat(parser::ParsingFlag::Turtle), nodeHelper(this) {}
+        : iri(iri), storage(std::move(storage)), persist(false), fileName(std::move(fileName)), loadedFromRdfFile(false), rdfParseFlags(parser::ParsingFlag::Turtle), nodeHelper(this) {}
     void setPersist(bool persist) {
         this->persist = persist;
         if (persist) {
@@ -149,10 +149,10 @@ public:
     virtual void setLoadedFromRdfFile(bool loadedFromRdfFile) {
         this->loadedFromRdfFile = loadedFromRdfFile;
     }
-    virtual void setRdfFileFormat(parser::ParsingFlag rdfFormat) {
-        this->rdfFormat = rdfFormat;
+    virtual void setRdfParseFlags(parser::ParsingFlag rdfParseFlags) {
+        this->rdfParseFlags = rdfParseFlags;
     }
-    static std::unique_ptr<RdfGraph> create(const gengodb::catalog::CreateRdfGraphDef& def);
+    static std::unique_ptr<RdfGraph> create(const std::string& name, const IRI& iri);
     void loadRdf();
     void addTriple(const Node& s, const Node& p, const Node& o) {
         if (!p.is_iri()) assert(false && "predicate must be an IRI");
@@ -182,6 +182,7 @@ public:
     void addTriple(const BlankNode& s, const IRI& p, const IRI& o);
     void addTriple(const BlankNode& s, const IRI& p, const BlankNode& o);
     void addTriple(const BlankNode& s, const IRI& p, const Literal& o);
+    IRI getIri() const { return iri; }
     const IriDictionary& getNodes() const { return nodes; }
     const IriDictionary& getRelations() const { return relations; }
     const IriDictionary& getLiteralTypes() const { return literalTypes; }
@@ -193,7 +194,7 @@ private:
     std::string fileName;
     std::string dbDir;
     bool loadedFromRdfFile;
-    parser::ParsingFlag rdfFormat;
+    parser::ParsingFlag rdfParseFlags;
     
     bool loaded = false;
 

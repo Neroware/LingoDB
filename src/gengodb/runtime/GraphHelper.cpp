@@ -1,6 +1,7 @@
 #include "gengodb/runtime/GraphHelper.h"
 
 #include "gengodb/runtime/BuiltinGraphs.h"
+#include "gengodb/GraphCatalogEntry.h"
 
 namespace lingodb::runtime {
 
@@ -10,7 +11,7 @@ GraphBase* GraphHelper::allocAndPopulateBuiltinGraph(int32_t builtin) {
     switch (builtin) {
         case 1: {
             auto g = PageRankGraph::create(16, 256);
-            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<PageRankGraph*>(p)); }});
+            context->registerState({g, [](void* p) { delete (reinterpret_cast<PageRankGraph*>(p)); }});
             for (int i = 0; i < 5; i++) {
                 g->addNode();
             }
@@ -24,7 +25,7 @@ GraphBase* GraphHelper::allocAndPopulateBuiltinGraph(int32_t builtin) {
         } break;
         case 2: {
             auto g = PropertyGraph::create(16, 256, 256);
-            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<PropertyGraph*>(p)); }});
+            context->registerState({g, [](void* p) { delete (reinterpret_cast<PropertyGraph*>(p)); }});
             for (int i = 0; i < 6; i++) {
                 g->addNode();
             }
@@ -50,7 +51,7 @@ GraphBase* GraphHelper::allocAndPopulateBuiltinGraph(int32_t builtin) {
         } break;
         default: {
             auto g = SimpleGraph::create(16, 256);
-            context->registerState({(static_cast<void*>(g)), [](void* p) { delete (static_cast<SimpleGraph*>(p)); }});
+            context->registerState({g, [](void* p) { delete (reinterpret_cast<SimpleGraph*>(p)); }});
             for (int i = 0; i < 6; i++) {
                 g->addNode();
             }
@@ -80,16 +81,28 @@ GraphBase* GraphHelper::allocGraphState(size_t nodeBufLen, size_t relBufLen, siz
     auto* context = getCurrentExecutionContext();
     assert(context);
     auto ptr = static_cast<void*>(PropertyGraph::create(nodeBufLen, relBufLen, propBufLen));
-    context->registerState({ptr, [](void* p) { delete (static_cast<PropertyGraph*>(p)); }});
+    context->registerState({ptr, [](void* p) { delete (reinterpret_cast<PropertyGraph*>(p)); }});
     return static_cast<GraphBase*>(ptr);
 }
 void GraphHelper::createGraph(lingodb::runtime::VarLen32 meta) {
     // TODO implement
     assert(false && "not implemented");
 }
-GraphBase* GraphHelper::getGraph(lingodb::runtime::VarLen32 description) {
-    // TODO implement
-    assert(false && "not implemented");
+GraphBase* GraphHelper::getGraph(lingodb::runtime::VarLen32 name, lingodb::runtime::VarLen32 iri) {
+    lingodb::runtime::ExecutionContext* executionContext = lingodb::runtime::getCurrentExecutionContext();
+    auto& session = executionContext->getSession();
+    if (auto maybeGraph = session.getCatalog()->getTypedEntry<gengodb::catalog::RDFGraphCatalogEntry>(name)) {
+        auto graph = maybeGraph.value();
+        if (graph->getIri().identifier() != iri.str()) {
+            // TODO support named graphs
+            throw std::runtime_error("The record entry does not contain the requested named graph");
+        }
+        auto& pgraph = graph->getStorage();
+        getCurrentExecutionContext()->registerState({&pgraph, [](void* ptr){ delete reinterpret_cast<PropertyGraph*>(ptr); }});
+        return &pgraph;
+    } else {
+        throw std::runtime_error("could not find graph");
+    }
 }
 
 } // namespace lingodb::runtime

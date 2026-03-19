@@ -4251,6 +4251,7 @@ class CreateGraphLowering : public SubOpConversionPattern<graph::CreateGraphOp> 
       return mlir::success();
    }
 };
+
 class CreateBuiltinGraphLowering : public SubOpConversionPattern<graph::CreateBuiltinGraphOp>{
    public:
    using SubOpConversionPattern<graph::CreateBuiltinGraphOp>::SubOpConversionPattern;
@@ -4262,6 +4263,19 @@ class CreateBuiltinGraphLowering : public SubOpConversionPattern<graph::CreateBu
       auto graphIdI32 = rewriter.create<arith::ConstantOp>(loc, rewriter.getIntegerAttr(rewriter.getI32Type(), static_cast<int>(graphId)));
       auto g = rt::GraphHelper::allocAndPopulateBuiltinGraph(rewriter, loc)({graphIdI32})[0];
       rewriter.replaceOp(createOp, g);
+      return mlir::success();
+   }
+};
+
+class GetExternalGraphLowering : public SubOpConversionPattern<graph::GetExternalGraphOp> {
+   public:
+   using SubOpConversionPattern<graph::GetExternalGraphOp>::SubOpConversionPattern;
+
+   LogicalResult matchAndRewrite(graph::GetExternalGraphOp op, OpAdaptor adaptor, SubOpRewriter& rewriter) const override {
+      if (!mlir::isa<graph::GraphType>(op.getType())) return failure();
+      mlir::Value name = rewriter.create<util::CreateConstVarLen>(op->getLoc(), util::VarLen32Type::get(rewriter.getContext()), op.getName());
+      mlir::Value uniqueId = rewriter.create<util::CreateConstVarLen>(op->getLoc(), util::VarLen32Type::get(rewriter.getContext()), op.getGraphId());
+      rewriter.replaceOp(op, rt::GraphHelper::getGraph(rewriter, op->getLoc())({name, uniqueId})[0]);
       return mlir::success();
    }
 };
@@ -5312,6 +5326,7 @@ void handleExecutionStepCPU(subop::ExecutionStepOp step, subop::ExecutionGroupOp
    //Graph
    rewriter.insertPattern<CreateBuiltinGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<CreateGraphLowering>(typeConverter, ctxt);
+   rewriter.insertPattern<GetExternalGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ScanGraphLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ScanNodeSetLowering>(typeConverter, ctxt);
    rewriter.insertPattern<ScanEdgeSetLowering>(typeConverter, ctxt);

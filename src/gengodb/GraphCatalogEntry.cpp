@@ -1,8 +1,9 @@
 #include "gengodb/GraphCatalogEntry.h"
 
 namespace gengodb::catalog {
+using namespace gengodb::semantics;
 
-RDFGraphCatalogEntry::RDFGraphCatalogEntry(std::string name, const IRI& iri, std::unique_ptr<semantics::RdfGraph> impl) : GraphCatalogEntry(CatalogEntryType::GENGODB_GRAPH_ENTRY, name), impl(std::move(impl)), iri(iri) {}
+RDFGraphCatalogEntry::RDFGraphCatalogEntry(std::string name, std::unique_ptr<semantics::RdfGraph> impl, semantics::RDFFileFormat format) : GraphCatalogEntry(CatalogEntryType::GENGODB_GRAPH_ENTRY, name), impl(std::move(impl)), format(format) {}
 
 void RDFGraphCatalogEntry::serializeEntry(lingodb::utility::Serializer& serializer) const {
     // TODO implement
@@ -12,6 +13,9 @@ std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::deserialize(lingodb:
     // TODO implement
     assert(false && "not implemented");
     return nullptr;
+}
+IRI RDFGraphCatalogEntry::getIri() const {
+    return impl->getIri();
 }
 IRI RDFGraphCatalogEntry::getNodeIri(int32_t node) const {
     return impl->getNodes().get_iri(node);
@@ -33,6 +37,13 @@ void RDFGraphCatalogEntry::flush() {
     impl->flush();
 }    
 void RDFGraphCatalogEntry::ensureFullyLoaded() {
+    if (format == RDFFileFormat::BINARY) {
+        impl->setLoadedFromRdfFile(false);
+    }
+    else {
+        impl->setLoadedFromRdfFile(true);
+        impl->setRdfParseFlags(getRDFParseFlags(format));
+    }
     impl->ensureLoaded();
 }
 void RDFGraphCatalogEntry::setShouldPersist(bool shouldPersist) {
@@ -42,8 +53,8 @@ void RDFGraphCatalogEntry::setDBDir(std::string dbDir) {
     impl->setDBDir(dbDir);
 }
 std::shared_ptr<RDFGraphCatalogEntry> RDFGraphCatalogEntry::createFromCreateRdfGraphDef(const CreateRdfGraphDef& def) {
-    std::unique_ptr<gengodb::semantics::RdfGraph> impl = gengodb::semantics::RdfGraph::create(def);
-    auto res = std::make_shared<RDFGraphCatalogEntry>(def.name, def.graph, std::move(impl));
+    std::unique_ptr<RdfGraph> impl = RdfGraph::create(def.name, def.iri);
+    auto res = std::make_shared<RDFGraphCatalogEntry>(def.name, std::move(impl), def.format);
     return res;
 }
 

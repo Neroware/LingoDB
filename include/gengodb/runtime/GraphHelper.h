@@ -10,7 +10,7 @@ struct GraphHelper {
     static GraphBase* allocAndPopulateBuiltinGraph(int32_t builtin);
     static GraphBase* allocGraphState(size_t nodeBufLen, size_t relBufLen, size_t propBufLen);
     static void createGraph(lingodb::runtime::VarLen32 meta);
-    static GraphBase* getGraph(lingodb::runtime::VarLen32 description);
+    static GraphBase* getGraph(lingodb::runtime::VarLen32 name, lingodb::runtime::VarLen32 iri);
 }; // GraphHelper
 
 } // namespace lingodb::runtime
