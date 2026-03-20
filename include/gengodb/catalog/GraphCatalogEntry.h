@@ -2,13 +2,14 @@
 #define GENGODB_GRAPHCATALOGENTRY_H
 
 #include "lingodb/catalog/Catalog.h"
-#include "gengodb/RdfGraph.h"
-#include "gengodb/CreateRdfGraphDef.h"
+#include "gengodb/semantics/RdfGraph.h"
+#include "gengodb/semantics/RdfFileFormat.h"
+#include "gengodb/catalog/CreateRdfGraphDef.h"
 
 #include <rdf4cpp.hpp>
 
 namespace gengodb::semantics {
-struct RdfGraph;
+class RdfGraph;
 } // namespace gengodb::semantics
 
 namespace gengodb::catalog {
@@ -29,25 +30,27 @@ public:
 
 class RDFGraphCatalogEntry : public GraphCatalogEntry {
     std::unique_ptr<semantics::RdfGraph> impl;
-    rdf4cpp::IRI iri;
+
+    semantics::RDFFileFormat format;
 
     public:
-    RDFGraphCatalogEntry(std::string name, const rdf4cpp::IRI& iri, std::unique_ptr<semantics::RdfGraph> impl);
+    RDFGraphCatalogEntry(std::string name, std::unique_ptr<semantics::RdfGraph> impl, semantics::RDFFileFormat format);
 
     static constexpr std::array<CatalogEntryType, 1> entryTypes = {CatalogEntryType::GENGODB_GRAPH_ENTRY};
     void serializeEntry(lingodb::utility::Serializer& serializer) const override;
     static std::shared_ptr<RDFGraphCatalogEntry> deserialize(lingodb::utility::Deserializer& deserializer);
     ~RDFGraphCatalogEntry() override = default;
-    IRI getIri() const { return iri; }
+    IRI getIri() const;
     IRI getNodeIri(int32_t node) const;
     IRI getRelationIri(int32_t rel) const;
     std::string_view getLocalId(int32_t node) const;
     lingodb::runtime::PropertyGraph& getStorage() override;
+    semantics::RDFFileFormat getFormat() const { return format; }
     virtual void flush() override;
     virtual void ensureFullyLoaded() override;
     virtual void setShouldPersist(bool shouldPersist) override;
     virtual void setDBDir(std::string dbDir) override;
-    static std::shared_ptr<RDFGraphCatalogEntry> createFromCreateRdfGraphDef(const CreateRdfGraphDef& def, bool useRdfFilePreload = true);
+    static std::shared_ptr<RDFGraphCatalogEntry> createFromCreateRdfGraphDef(const CreateRdfGraphDef& def);
 };
 } // lingodb::semantics
 

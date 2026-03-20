@@ -1,4 +1,6 @@
-#include "gengodb/RdfGraph.h"
+#include "gengodb/semantics/RdfGraph.h"
+
+#include "gengodb/semantics/RdfFileFormat.h"
 
 #include <rdf4cpp/Graph.hpp>
 #include <rdf4cpp/parser/RDFFileParser.hpp>
@@ -56,24 +58,48 @@ void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const BlankNode& o) {
 void RdfGraph::addTriple(const BlankNode& s, const IRI& p, const Literal& o) {
     nodeHelper.addLiteral(nodeHelper.resolveNode(s), nodeHelper.resolvePredicate(p), o);
 }
-std::unique_ptr<RdfGraph> RdfGraph::create(const gengodb::catalog::CreateRdfGraphDef& def) {
-    auto storage = runtime::GengoDBGraph::create(def.name);
-    auto dbDir = storage->getDBDir();
-    auto rdfGraph = std::make_unique<RdfGraph>(def.graph, std::move(storage));
-    RDFFileParser parser(dbDir + def.name + ".rdf", def.format);
+void RdfGraph::loadTriples() {
+    if (!loadedFromRdfFile) {
+        return;
+    }
+    RDFFileParser parser(dbDir + fileName + getRDFFileExtension(rdfParseFlags), rdfParseFlags);
     for (const auto &v : parser) {
         if (!v.has_value())
             break;
         auto quad = v.value();
-        rdfGraph->addTriple(quad.subject(), quad.predicate(), quad.object());
+        this->addTriple(quad.subject(), quad.predicate(), quad.object());
     }
-    return rdfGraph;
 }
 std::unique_ptr<RdfGraph> RdfGraph::create(const std::string& name, const IRI& iri) {
     auto storage = runtime::GengoDBGraph::create(name);
-    auto rdfGraph = std::make_unique<RdfGraph>(iri ? iri : extra_namespaces().GENGODB + name, std::move(storage));
+    auto rdfGraph = std::make_unique<RdfGraph>(iri.null() ? extra_namespaces().GENGODB + name : iri, std::move(storage), name);
     return rdfGraph;
 }
-
+void RdfGraph::flush() {
+    if (loadedFromRdfFile) {
+        return;
+    }
+    storage->flush();
+}
+void RdfGraph::ensureLoaded() {
+    if (!loaded) {
+        loaded = true;
+        if (loadedFromRdfFile) {
+            loadTriples();
+        }
+        storage->ensureLoaded();
+    }
+}
+void RdfGraph::serialize(lingodb::utility::Serializer& serializer) const {
+    serializer.writeProperty(1, iri.identifier());
+    serializer.writeProperty(2, storage);
+    serializer.writeProperty(3, fileName);
+}
+std::unique_ptr<RdfGraph> RdfGraph::deserialize(lingodb::utility::Deserializer& deserializer) {
+    auto iri = deserializer.readProperty<std::string>(1);
+    auto storage = deserializer.readProperty<std::unique_ptr<lingodb::runtime::GengoDBGraph>>(2);
+    auto fileName = deserializer.readProperty<std::string>(3);
+    return std::make_unique<RdfGraph>(IRI{iri}, std::move(storage), fileName);
+}
 
 } // lingodb::semantics

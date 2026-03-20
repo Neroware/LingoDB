@@ -2,16 +2,15 @@
 #define GENGODB_CREATERDFGRAPHDEF_H
 
 #include "lingodb/utility/Serialization.h"
-
-#include <rdf4cpp.hpp>
-#include <rdf4cpp/parser/RDFFileParser.hpp>
+#include "gengodb/semantics/RdfFileFormat.h"
 
 namespace gengodb::catalog {
 using namespace lingodb;
 struct CreateRdfGraphDef {
+
     std::string name;
-    rdf4cpp::IRI graph;
-    rdf4cpp::parser::ParsingFlag format;
+    rdf4cpp::IRI iri;
+    semantics::RDFFileFormat format;
 
     void serialize(utility::Serializer& serializer) const;
     static CreateRdfGraphDef deserialize(utility::Deserializer& deserializer);

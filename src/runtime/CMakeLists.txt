@@ -36,7 +36,9 @@ add_library(runtime OBJECT
         Session.cpp
         storage/LingoDBTable.cpp
         ../gengodb/runtime/Graph.cpp
+        ../gengodb/runtime/BuiltinGraphs.cpp
         ../gengodb/runtime/PropertyGraph.cpp
+        ../gengodb/runtime/GraphHelper.cpp
         ../gengodb/runtime/GengoDBGraph.cpp
 )
 set(COMPILE_DEFS "")
