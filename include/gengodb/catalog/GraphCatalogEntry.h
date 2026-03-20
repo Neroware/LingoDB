@@ -45,6 +45,7 @@ class RDFGraphCatalogEntry : public GraphCatalogEntry {
     IRI getRelationIri(int32_t rel) const;
     std::string_view getLocalId(int32_t node) const;
     lingodb::runtime::PropertyGraph& getStorage() override;
+    semantics::RDFFileFormat getFormat() const { return format; }
     virtual void flush() override;
     virtual void ensureFullyLoaded() override;
     virtual void setShouldPersist(bool shouldPersist) override;

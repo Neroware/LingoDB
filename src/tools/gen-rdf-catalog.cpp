@@ -62,8 +62,16 @@ int main(int argc, char** argv) {
       if (!entry.is_regular_file())
          continue;
 
-      std::string ext = entry.path().extension().string();
+      std::string name = entry.path().stem().string();
+      if (auto catalogEntry = session->getCatalog()->getTypedEntry<RDFGraphCatalogEntry>(name)) {
+         auto entry = catalogEntry.value();
+         if (entry->getFormat() != RDFFileFormat::BINARY) {
+            catalogEntry.value()->ensureFullyLoaded();
+         }
+         continue;
+      }
 
+      std::string ext = entry.path().extension().string();
       RDFFileFormat format;
       try {
          format = getFormatFromExtension(ext);
@@ -72,7 +80,6 @@ int main(int argc, char** argv) {
       }
 
       std::string filePath = entry.path().string();
-      std::string name = entry.path().stem().string();
 
       rdf4cpp::IRI iri;
       if (argc >= 4 && std::string(argv[2]) == "--prefix") {

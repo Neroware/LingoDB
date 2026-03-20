@@ -99,7 +99,7 @@ std::unique_ptr<RdfGraph> RdfGraph::deserialize(lingodb::utility::Deserializer& 
     auto iri = deserializer.readProperty<std::string>(1);
     auto storage = deserializer.readProperty<std::unique_ptr<lingodb::runtime::GengoDBGraph>>(2);
     auto fileName = deserializer.readProperty<std::string>(3);
-    return nullptr; // std::make_unique<RdfGraph>(IRI{iri}, storage, fileName);
+    return std::make_unique<RdfGraph>(IRI{iri}, std::move(storage), fileName);
 }
 
 } // lingodb::semantics
