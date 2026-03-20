@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
       if (auto catalogEntry = session->getCatalog()->getTypedEntry<RDFGraphCatalogEntry>(name)) {
          auto entry = catalogEntry.value();
          if (entry->getFormat() != RDFFileFormat::BINARY) {
-            catalogEntry.value()->ensureFullyLoaded();
+            entry->ensureFullyLoaded();
          }
          continue;
       }

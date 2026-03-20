@@ -72,14 +72,11 @@ struct RdfDatatypeInlineHelper {
     const std::unordered_set<IRI> inlinedIRIs = {
         IRI(datatypes::xsd::Boolean::identifier),
         IRI(datatypes::xsd::Byte::identifier),
-        // IRI(datatypes::xsd::Double::identifier),
         IRI(datatypes::xsd::Float::identifier),
         IRI(datatypes::xsd::Int::identifier),
-        // IRI(datatypes::xsd::Long::identifier),
         IRI(datatypes::xsd::Short::identifier),
         IRI(datatypes::xsd::UnsignedByte::identifier),
         IRI(datatypes::xsd::UnsignedInt::identifier),
-        // IRI(datatypes::xsd::UnsignedLong::identifier),
         IRI(datatypes::xsd::UnsignedShort::identifier),
     };
     /**
@@ -96,14 +93,11 @@ struct RdfDatatypeInlineHelper {
         const Namespace xsd = extra_namespaces().XSD;
         if (datatype == xsd + "boolean")                inlineValue<bool>((bool*) out, in);
         else if (datatype == xsd + "byte")              inlineValue<int8_t>((int8_t*) out, in);
-        // else if (datatype == xsd + "double")            inlineValue<double>((double*) out, in);
         else if (datatype == xsd + "float")             inlineValue<float>((float*) out, in);
         else if (datatype == xsd + "int")               inlineValue<int32_t>((int32_t*) out, in);
-        // else if (datatype == xsd + "long")              inlineValue<int64_t>((int64_t*) out, in);
         else if (datatype == xsd + "short")             inlineValue<int16_t>((int16_t*) out, in);
         else if (datatype == xsd + "unsignedByte")      inlineValue<uint8_t>((uint8_t*) out, in);
         else if (datatype == xsd + "unsignedInt")       inlineValue<uint32_t>((uint32_t*) out, in);
-        // else if (datatype == xsd + "unsignedLong")      inlineValue<uint64_t>((uint64_t*) out, in);
         else if (datatype == xsd + "unsignedShort")     inlineValue<uint16_t>((uint16_t*) out, in);
         else assert(false && "unsupported datatype for inlining");
     }
