@@ -118,8 +118,11 @@ def PropertySet : Graph_Type<"PropertySet", "property_set", [State,LookupAbleSta
 }
 def PropertyRef : Graph_Type<"PropertyRef", "property_ref", [State]> {
     let summary = "property reference";
-    let parameters = (ins "StateMembersAttr":$members);
-    let assemblyFormat = "`<` custom<StateMembers>($members) `>`";
+    let extraClassDeclaration = [{
+            StateMembersAttr getMembers(){
+            return lingodb::compiler::dialect::subop::StateMembersAttr::get(getContext(), {});
+            }
+        }];
 }
 def TypedPropertyRef : Graph_Type<"TypedPropertyRef", "typed_property_ref", [State]> {
     let summary = "typed property ref";
