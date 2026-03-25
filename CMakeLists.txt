@@ -141,6 +141,7 @@ add_subdirectory(src/compiler/Dialect/RelAlg)
 add_subdirectory(src/compiler/Dialect/TupleStream)
 add_subdirectory(src/compiler/Dialect/SubOperator)
 add_subdirectory(src/gengodb/compiler/Dialect/Graph)
+add_subdirectory(src/gengodb/compiler/Dialect/GPM)
 
 add_subdirectory(src/compiler/Dialect/DB)
 add_subdirectory(src/compiler/Dialect/Arrow)

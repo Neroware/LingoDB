@@ -1,0 +1,48 @@
+=== Graph Pattern Matching Dialect (GPM) ===
+
+Important SQL != SPARQL, but...
+
+- Bound variables are columns
+- BGP are joins of tuple streams
+- Operators change their semantic meaning and behavior depending on the combination of bound and unbound variables!
+    Ex.: "?x rdf:type ex:Animal" is either a scan of the graph or a filter depending on the binding of ?x
+
+Core principle: Each ARQ query needs a declarative graph context it is performed in. This is then lowered to any graph state implementation on sub-operator layer
+
+%result = arq.arq_query {named_graph = "base"} (%stream) {
+    ...
+}
+
+The ARQ query itself generates the empty tuple-stream from a named graph. This works opposite to table scans, which generate complete sets of a relation.
+(i) %result is, of course, of type !tuples.tuplestream in this case.
+
+Therefore, we need a slightly different Interface for ARQ operators.
+
+interface ARQ_Op {
+    Column[] GetAllVariables();
+    Column[] GetUnboundVariables();
+    Column[] GetBoundVariables();
+    Term[] GetTerms();
+    StringAttr GetNamedGraph();
+}
+
+Furthermore, we need to define terms, since they are essential in Triple-Patterns. A term is either a BNode, a Node ID, an (un-)bound variable (or a literal).
+Basic graph patterns join over bound variables and filter after unbound ones...
+
+SELECT *
+WHERE {
+    ?s ex:prop1 ?o.
+    ?o ex:prop2 ?o2.
+}
+
+Since each variable is a column, this means:
+> Unbound variable = Column Def
+> Bound variable = Column Ref
+
+Therefore:
+struct Variable : public Term {
+    bool hasBinding();
+    AnyOf<ColumnRef, ColumnDef> getBinding();
+}
+
+Since there is no immediate need, I do not plan to support literal pattern matching for now...

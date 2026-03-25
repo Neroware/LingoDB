@@ -140,7 +140,7 @@ def TypeIdentifier : Graph_Type<"TypeIdentifier", "type_identifier", []> {
 class Graph_Attr<string name> : AttrDef<Graph_Dialect, name>;
 
 // Currently needed because otherwise attribute part of the codegen won't run causing a compiler error
-def GraphDummyAttr : Graph_Attr<"GraphDummDummyAttr"> {
+def GraphDummyAttr : Graph_Attr<"GraphDummyAttr"> {
     let mnemonic = "graph_dummy_attr";
 }
 
