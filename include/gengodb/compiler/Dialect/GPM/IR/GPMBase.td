@@ -47,7 +47,7 @@ def GPM_TermType : I64EnumAttr<"TermType", "term type",
 // Types
 //===----------------------------------------------------------------------===//
 
-class GPM_Type<string name, string typeMnemonic> : TypeDef<TupleStream_Dialect, name> {
+class GPM_Type<string name, string typeMnemonic> : TypeDef<GPM_Dialect, name> {
     let mnemonic = typeMnemonic;
 }
 
@@ -60,6 +60,24 @@ def VariableBinding : GPM_Type<"VariableBinding", "variable_binding"> {
 //===----------------------------------------------------------------------===//
 
 class GPM_Attr<string name> : AttrDef<GPM_Dialect, name>;
+
+class GPM_TermAttr<string name, string attrMnemonic> : GPM_Attr<name> {
+    let mnemonic = attrMnemonic;
+    let summary = "graph pattern term attribute";
+    let extraClassDeclaration = [{
+        TermType getTermType() const;
+    }];
+}
+
+def IdentifierTermAttr : GPM_TermAttr<"IdentifierTermAttr", "identifier"> {
+    let parameters = (ins "mlir::StringAttr":$ident);
+    let summary = "identifier term";
+    let extraClassDeclaration = [{
+        TermType getTermType() const {  return TermType::identifier;  }
+        std::string identifier() const {  return getIdent().getValue().str();  }
+    }];
+    let assemblyFormat = "`<` $ident `>`";
+}
 
 // Currently needed because otherwise attribute part of the codegen won't run causing a compiler error
 def GPMDummyAttr : GPM_Attr<"GPMDummyAttr"> {
