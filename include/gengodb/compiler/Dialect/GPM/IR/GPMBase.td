@@ -79,9 +79,27 @@ def IdentifierTermAttr : GPM_TermAttr<"IdentifierTermAttr", "identifier"> {
     let assemblyFormat = "`<` $ident `>`";
 }
 
-// Currently needed because otherwise attribute part of the codegen won't run causing a compiler error
-def GPMDummyAttr : GPM_Attr<"GPMDummyAttr"> {
-    let mnemonic = "gpm_dummy_attr";
+def BNodeTermAttr : GPM_TermAttr<"BNodeTermAttr", "blank_node"> {
+    let parameters = (ins "mlir::StringAttr":$localId);
+    let summary = "blank node term";
+    let extraClassDeclaration = [{
+        TermType getTermType() const {  return TermType::blank;  }
+        std::string localId() const {  return getLocalId().getValue().str();  }
+    }];
+    let assemblyFormat = "`<` $localId `>`";
+}
+
+def VariableTermAttr : GPM_TermAttr<"VariableAttr", "variable"> {
+    let parameters = (ins "mlir::StringAttr":$name, "mlir::Attribute":$binding);
+    let summary = "variable term";
+    let extraClassDeclaration = [{
+        TermType getTermType() const {  return TermType::variable;  }
+        std::string varstr() const {  return getName().getValue().str();  }
+        bool hasBinding() const;
+        lingodb::compiler::dialect::tuples::ColumnRefAttr getBindingReference() const;
+        lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedBinding() const;
+    }];
+    let hasCustomAssemblyFormat = 1;
 }
 
 #endif // #ifndef GENGODB_DIALECT_GPM_IR_OPS

@@ -10,6 +10,11 @@
 #include "lingodb/compiler/Dialect/TupleStream/TupleStreamOpsAttributes.h"
 #include "lingodb/compiler/Dialect/TupleStream/TupleStreamOpsTypes.h"
 
+#include "gengodb/compiler/Dialect/GPM/IR/GPMOpsAttributes.h"
+#include "gengodb/compiler/Dialect/GPM/IR/GPMOpsEnums.h"
+#include "gengodb/compiler/Dialect/GPM/IR/GPMOpsInterfaces.h"
+#include "gengodb/compiler/Dialect/GPM/IR/GPMOpsTypes.h"
+
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 

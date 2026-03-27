@@ -20,7 +20,7 @@ class GPM_Op<string mnemonic, list<Trait> traits = []> : Op<GPM_Dialect, mnemoni
   let hasCustomAssemblyFormat = 1;
 }
 
-def DummyOp : GPM_Op<"dummy", [Pure]> {
+def DummyOp : GPM_Op<"dummy", [Pure,GPMOperator]> {
     let summary = "dummy op";
 
     let arguments = (ins TupleStream:$rel);

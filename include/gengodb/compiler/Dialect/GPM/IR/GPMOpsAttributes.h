@@ -3,6 +3,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "lingodb/compiler/Dialect/TupleStream/TupleStreamOpsAttributes.h"
 
 #include "gengodb/compiler/Dialect/GPM/IR/GPMOpsEnums.h"
 
