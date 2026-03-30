@@ -46,3 +46,7 @@ struct Variable : public Term {
 }
 
 Since there is no immediate need, I do not plan to support literal pattern matching for now...
+
+Assembly format of triple pattern terms:
+
+%stream0 = gpm.triple_pattern %stream (?"name"[column-defref-attr], id["my:uri"], _["n0"])

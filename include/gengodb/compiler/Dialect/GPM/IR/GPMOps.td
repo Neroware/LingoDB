@@ -8,6 +8,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
+include "lingodb/compiler/Dialect/RelAlg/IR/RelAlgInterfaces.td"
 include "gengodb/compiler/Dialect/GPM/IR/GPMBase.td"
 
 include "GPMInterfaces.td"
@@ -20,12 +21,12 @@ class GPM_Op<string mnemonic, list<Trait> traits = []> : Op<GPM_Dialect, mnemoni
   let hasCustomAssemblyFormat = 1;
 }
 
-def DummyOp : GPM_Op<"dummy", [Pure,GPMOperator]> {
-    let summary = "dummy op";
-
-    let arguments = (ins TupleStream:$rel);
-    let results = (outs I64:$res);
-    let assemblyFormat = [{  $rel attr-dict }];
+def TriplePatternOp : GPM_Op<"triple_pattern", [Pure,GPMOperator,Operator]> {
+  let summary = "triple pattern";
+  let arguments = (ins TupleStream:$rel, AnyAttr:$s, AnyAttr:$p, AnyAttr:$o);
+  let results = (outs TupleStream:$res);
+  let assemblyFormat = [{  $rel `(` $s `,` $p `,` $o `)` attr-dict }];
+  let hasVerifier = 1;
 }
 
 #endif // GENGODB_DIALECT_GPM_IR_GPMOPS

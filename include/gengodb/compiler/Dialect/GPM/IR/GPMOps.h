@@ -10,6 +10,8 @@
 #include "lingodb/compiler/Dialect/TupleStream/TupleStreamOpsAttributes.h"
 #include "lingodb/compiler/Dialect/TupleStream/TupleStreamOpsTypes.h"
 
+#include "lingodb/compiler/Dialect/RelAlg/IR/RelAlgOpsInterfaces.h"
+
 #include "gengodb/compiler/Dialect/GPM/IR/GPMOpsAttributes.h"
 #include "gengodb/compiler/Dialect/GPM/IR/GPMOpsEnums.h"
 #include "gengodb/compiler/Dialect/GPM/IR/GPMOpsInterfaces.h"

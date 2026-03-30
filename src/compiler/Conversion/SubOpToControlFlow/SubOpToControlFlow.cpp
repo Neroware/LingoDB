@@ -1,7 +1,6 @@
 #include "lingodb/compiler/Conversion/SubOpToControlFlow/SubOpToControlFlowPass.h"
 
 #include "lingodb/compiler/Conversion/UtilToLLVM/Passes.h"
-#include "gengodb/compiler/Conversion/GraphToControlFlow/GraphHelpers.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowDialect.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowOps.h"
 #include "lingodb/compiler/Dialect/DB/IR/DBDialect.h"
@@ -36,6 +35,8 @@
 #include "lingodb/gengodb/runtime/Graph.h"
 #include "lingodb/gengodb/runtime/PropertyGraph.h"
 #include "lingodb/gengodb/runtime/GraphHelper.h"
+
+#include "gengodb/compiler/Conversion/GraphToControlFlow/GraphHelpers.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"

@@ -69,27 +69,27 @@ class GPM_TermAttr<string name, string attrMnemonic> : GPM_Attr<name> {
     }];
 }
 
-def IdentifierTermAttr : GPM_TermAttr<"IdentifierTermAttr", "identifier"> {
+def IdentifierTermAttr : GPM_TermAttr<"IdentifierTerm", "identifier"> {
     let parameters = (ins "mlir::StringAttr":$ident);
     let summary = "identifier term";
     let extraClassDeclaration = [{
         TermType getTermType() const {  return TermType::identifier;  }
         std::string identifier() const {  return getIdent().getValue().str();  }
     }];
-    let assemblyFormat = "`<` $ident `>`";
+    let hasCustomAssemblyFormat = 1;
 }
 
-def BNodeTermAttr : GPM_TermAttr<"BNodeTermAttr", "blank_node"> {
+def BNodeTermAttr : GPM_TermAttr<"BNodeTerm", "blank_node"> {
     let parameters = (ins "mlir::StringAttr":$localId);
     let summary = "blank node term";
     let extraClassDeclaration = [{
         TermType getTermType() const {  return TermType::blank;  }
         std::string localId() const {  return getLocalId().getValue().str();  }
     }];
-    let assemblyFormat = "`<` $localId `>`";
+    let hasCustomAssemblyFormat = 1;
 }
 
-def VariableTermAttr : GPM_TermAttr<"VariableAttr", "variable"> {
+def VariableTermAttr : GPM_TermAttr<"VariableTerm", "variable"> {
     let parameters = (ins "mlir::StringAttr":$name, "mlir::Attribute":$binding);
     let summary = "variable term";
     let extraClassDeclaration = [{
