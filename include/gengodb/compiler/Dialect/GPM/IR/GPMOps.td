@@ -25,7 +25,7 @@ def TriplePatternOp : GPM_Op<"triple_pattern", [Pure,GPMOperator,Operator]> {
   let summary = "triple pattern";
   let arguments = (ins TupleStream:$rel, AnyAttr:$s, AnyAttr:$p, AnyAttr:$o);
   let results = (outs TupleStream:$res);
-  let assemblyFormat = [{  $rel `(` $s `,` $p `,` $o `)` attr-dict }];
+  let assemblyFormat = [{  $rel `(` custom<Term>($s) `,` custom<Term>($p) `,` custom<Term>($o) `)` attr-dict }];
   let hasVerifier = 1;
 }
 

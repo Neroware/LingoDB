@@ -20,7 +20,7 @@ tuples::ColumnDefAttr VariableTermAttr::getProducedBinding() const {
     return mlir::dyn_cast_or_null<tuples::ColumnDefAttr>(getBinding());
 }
 void IdentifierTermAttr::print(mlir::AsmPrinter &printer) const {
-    printer << "id{\"" << getIdent() << "\"}";
+    printer << "id{" << getIdent() << "}";
 }
 ::mlir::Attribute IdentifierTermAttr::parse(::mlir::AsmParser &parser, ::mlir::Type odsType) {
     auto context = parser.getContext();
@@ -32,7 +32,7 @@ void IdentifierTermAttr::print(mlir::AsmPrinter &printer) const {
     return IdentifierTermAttr::get(context, mlir::StringAttr::get(context, ident));
 }
 void BNodeTermAttr::print(mlir::AsmPrinter &printer) const {
-    printer << "_{\"" << getLocalId() << "\"}";
+    printer << "_{" << getLocalId() << "}";
 }
 ::mlir::Attribute BNodeTermAttr::parse(::mlir::AsmParser &parser, ::mlir::Type odsType) {
     auto context = parser.getContext();
