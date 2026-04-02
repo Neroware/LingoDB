@@ -55,6 +55,10 @@ def VariableBinding : GPM_Type<"VariableBinding", "variable_binding"> {
     let summary = "variable binding type";
 }
 
+def GraphRef : GPM_Type<"GraphReference", "graph_ref"> {
+    let summary = "graph reference";
+}
+
 //===----------------------------------------------------------------------===//
 // Attributes
 //===----------------------------------------------------------------------===//

@@ -91,21 +91,26 @@ struct RdfDatatypeInlineHelper {
      */
     void inlineValue(uint64_t* out, const std::any& in, const IRI& datatype) const {
         const Namespace xsd = extra_namespaces().XSD;
-        if (datatype == xsd + "boolean")                inlineValue<bool>((bool*) out, in);
-        else if (datatype == xsd + "byte")              inlineValue<int8_t>((int8_t*) out, in);
-        else if (datatype == xsd + "float")             inlineValue<float>((float*) out, in);
-        else if (datatype == xsd + "int")               inlineValue<int32_t>((int32_t*) out, in);
-        else if (datatype == xsd + "short")             inlineValue<int16_t>((int16_t*) out, in);
-        else if (datatype == xsd + "unsignedByte")      inlineValue<uint8_t>((uint8_t*) out, in);
-        else if (datatype == xsd + "unsignedInt")       inlineValue<uint32_t>((uint32_t*) out, in);
-        else if (datatype == xsd + "unsignedShort")     inlineValue<uint16_t>((uint16_t*) out, in);
-        else assert(false && "unsupported datatype for inlining");
+        if (datatype == xsd + "boolean")                inlineValueImpl<bool>(out, in);
+        else if (datatype == xsd + "byte")              inlineValueImpl<int8_t>(out, in);
+        else if (datatype == xsd + "float")             inlineValueImpl<float>(out, in);
+        else if (datatype == xsd + "int")               inlineValueImpl<int32_t>(out, in);
+        else if (datatype == xsd + "short")             inlineValueImpl<int16_t>(out, in);
+        else if (datatype == xsd + "unsignedByte")      inlineValueImpl<uint8_t>(out, in);
+        else if (datatype == xsd + "unsignedInt")       inlineValueImpl<uint32_t>(out, in);
+        else if (datatype == xsd + "unsignedShort")     inlineValueImpl<uint16_t>(out, in);
+        else throw std::invalid_argument(("Unsupported datatype for inlining."));
     }
     template<typename T>
-    void inlineValue(T* out, const std::any& in) const {
-        T v = std::any_cast<T>(in);
-        T* ptr = (T*) out;
-        *ptr = v;
+    void inlineValueImpl(uint64_t* out, const std::any& in) const {
+        const T* v = std::any_cast<T>(&in);
+        if (!v) {
+            throw std::bad_any_cast();
+        }
+        static_assert(sizeof(T) <= sizeof(uint64_t), "Type too large to inline");
+        uint64_t tmp = 0;
+        std::memcpy(&tmp, v, sizeof(T));
+        *out = tmp;
     }
 };
 class NodeHelper {

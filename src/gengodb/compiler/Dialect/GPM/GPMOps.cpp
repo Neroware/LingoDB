@@ -17,6 +17,12 @@ using namespace lingodb::compiler::dialect;
 tuples::ColumnManager& getColumnManager(::mlir::OpAsmParser& parser) {
    return parser.getBuilder().getContext()->getLoadedDialect<tuples::TupleStreamDialect>()->getColumnManager();
 }
+ParseResult parseCustRef(OpAsmParser& parser, tuples::ColumnRefAttr& attr) {
+   ::mlir::SymbolRefAttr parsedSymbolRefAttr;
+   if (parser.parseAttribute(parsedSymbolRefAttr, parser.getBuilder().getType<::mlir::NoneType>())) { return failure(); }
+   attr = getColumnManager(parser).createRef(parsedSymbolRefAttr);
+   return success();
+}
 void printCustRef(OpAsmPrinter& p, mlir::Operation* op, tuples::ColumnRefAttr attr) {
    p << attr.getName();
 }
@@ -71,6 +77,26 @@ ParseResult parseBinding(OpAsmParser& parser, mlir::Attribute& result) {
     }
     result = getColumnManager(parser).createRef(attrSymbolAttr);
     return success();
+}
+ParseResult parseCustDef(OpAsmParser& parser, tuples::ColumnDefAttr& attr) {
+   SymbolRefAttr attrSymbolAttr;
+   if (parser.parseAttribute(attrSymbolAttr, parser.getBuilder().getType<::mlir::NoneType>())) { return failure(); }
+   std::string attrName(attrSymbolAttr.getLeafReference().getValue());
+   if (parser.parseLParen()) { return failure(); }
+   DictionaryAttr dictAttr;
+   if (parser.parseAttribute(dictAttr)) { return failure(); }
+   mlir::ArrayAttr fromExisting;
+   if (parser.parseRParen()) { return failure(); }
+   if (parser.parseOptionalEqual().succeeded()) {
+      if (parseCustRefArr(parser, fromExisting)) {
+         return failure();
+      }
+   }
+   parser.getContext()->getOrLoadDialect<tuples::TupleStreamDialect>();
+   attr = getColumnManager(parser).createDef(attrSymbolAttr, fromExisting);
+   auto propType = mlir::dyn_cast<TypeAttr>(dictAttr.get("type")).getValue();
+   attr.getColumn().type = propType;
+   return success();
 }
 void printCustDef(OpAsmPrinter& p, mlir::Operation* op, tuples::ColumnDefAttr attr) {
    p << attr.getName();

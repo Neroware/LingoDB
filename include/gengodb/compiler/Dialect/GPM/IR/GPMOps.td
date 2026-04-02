@@ -23,10 +23,17 @@ class GPM_Op<string mnemonic, list<Trait> traits = []> : Op<GPM_Dialect, mnemoni
 
 def TriplePatternOp : GPM_Op<"triple_pattern", [Pure,GPMOperator,Operator]> {
   let summary = "triple pattern";
-  let arguments = (ins TupleStream:$rel, AnyAttr:$s, AnyAttr:$p, AnyAttr:$o);
+  let arguments = (ins TupleStream:$rel, ColumnRefAttr:$graphRef, AnyAttr:$s, AnyAttr:$p, AnyAttr:$o);
   let results = (outs TupleStream:$res);
-  let assemblyFormat = [{  $rel `(` custom<Term>($s) `,` custom<Term>($p) `,` custom<Term>($o) `)` attr-dict }];
+  let assemblyFormat = [{  $rel custom<CustRef>($graphRef) `(` custom<Term>($s) `,` custom<Term>($p) `,` custom<Term>($o) `)` attr-dict }];
   let hasVerifier = 1;
+}
+
+def BaseGraphOp : GPM_Op<"basegraph", [Pure,GPMOperator,Operator]> {
+  let summary = "base graph";
+  let arguments = (ins StrAttr:$graph, ColumnDefAttr:$def);
+  let results = (outs TupleStream:$res);
+  let assemblyFormat = [{  `graph_name` `:` $graph `,` `column` `:` custom<CustDef>($def) attr-dict }];
 }
 
 #endif // GENGODB_DIALECT_GPM_IR_GPMOPS
