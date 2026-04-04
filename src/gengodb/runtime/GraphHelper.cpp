@@ -94,7 +94,6 @@ GraphBase* GraphHelper::getGraph(lingodb::runtime::VarLen32 name, lingodb::runti
     if (auto maybeGraph = session.getCatalog()->getTypedEntry<gengodb::catalog::RDFGraphCatalogEntry>(name)) {
         auto graph = maybeGraph.value();
         if (graph->getIri().identifier() != iri.str()) {
-            // TODO support named graphs
             throw std::runtime_error("The record entry does not contain the requested named graph");
         }
         auto& pgraph = graph->getStorage();

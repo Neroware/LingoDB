@@ -33,7 +33,7 @@ def BaseGraphOp : GPM_Op<"basegraph", [Pure,GPMOperator,Operator]> {
   let summary = "base graph";
   let arguments = (ins StrAttr:$graph, ColumnDefAttr:$def);
   let results = (outs TupleStream:$res);
-  let assemblyFormat = [{  `graph_name` `:` $graph `,` `column` `:` custom<CustDef>($def) attr-dict }];
+  let assemblyFormat = [{  `graph` `:` $graph `,` `column` `:` custom<CustDef>($def) attr-dict }];
 }
 
 #endif // GENGODB_DIALECT_GPM_IR_GPMOPS
