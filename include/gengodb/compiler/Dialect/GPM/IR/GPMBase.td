@@ -94,11 +94,10 @@ def BNodeTermAttr : GPM_TermAttr<"BNodeTerm", "blank_node"> {
 }
 
 def VariableTermAttr : GPM_TermAttr<"VariableTerm", "variable"> {
-    let parameters = (ins "mlir::StringAttr":$name, "mlir::Attribute":$binding);
+    let parameters = (ins "mlir::Attribute":$binding);
     let summary = "variable term";
     let extraClassDeclaration = [{
         TermType getTermType() const {  return TermType::variable;  }
-        std::string varstr() const {  return getName().getValue().str();  }
         bool hasBinding() const;
         lingodb::compiler::dialect::tuples::ColumnRefAttr getBindingReference() const;
         lingodb::compiler::dialect::tuples::ColumnDefAttr getProducedBinding() const;

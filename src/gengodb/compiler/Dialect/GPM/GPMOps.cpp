@@ -133,8 +133,7 @@ ParseResult parseTerm(OpAsmParser& parser, mlir::Attribute& attr) {
         return success();
     }
     else if (!parser.parseOptionalQuestion()) {
-        std::string var;
-        if (parser.parseString(&var) || parser.parseLBrace()) {
+        if (parser.parseLBrace()) {
             return failure();
         }
         mlir::Attribute binding;
@@ -142,7 +141,7 @@ ParseResult parseTerm(OpAsmParser& parser, mlir::Attribute& attr) {
             return failure();
         }
         if (binding && parser.parseRBrace().succeeded()) { 
-            attr = gpm::VariableTermAttr::get(ctxt, StringAttr::get(ctxt, var), binding);
+            attr = gpm::VariableTermAttr::get(ctxt, binding);
             return success();
         }
     }
@@ -157,9 +156,7 @@ void printTerm(OpAsmPrinter& p, mlir::Operation* op, mlir::Attribute attr) {
             bnode.print(p);
         })
         .Case<gpm::VariableTermAttr>([&](auto varTerm) {
-            p << "?";
-            p << varTerm.getName();
-            p << "{";
+            p << "?{";
             if (varTerm.hasBinding()) {
                 printCustRef(p, op, varTerm.getBindingReference());
             }

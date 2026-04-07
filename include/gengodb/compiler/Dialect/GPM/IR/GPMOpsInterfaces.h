@@ -14,10 +14,9 @@
 
 namespace gengodb::compiler::dialect::gpm::detail {
 using namespace lingodb::compiler::dialect::relalg;
-llvm::SmallVector<VariableTermAttr, 4> getBoundVariables(mlir::Operation* op);
-llvm::SmallVector<VariableTermAttr, 4> getUnboundVariables(mlir::Operation* op);
-ColumnSet getCreatedColumns(mlir::Operation* op);
-ColumnSet getFreeColumns(mlir::Operation* op);
+ColumnSet getCreatedVariables(mlir::Operation* op);
+ColumnSet getBoundVariables(mlir::Operation* op);
+ColumnSet getAllVariables(mlir::Operation* op);
 } // namespace gengodb::compiler::dialect::gpm::detail
 class GPMOperator;
 #define GET_OP_CLASSES

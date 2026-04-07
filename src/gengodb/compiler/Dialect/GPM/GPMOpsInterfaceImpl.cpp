@@ -11,43 +11,32 @@
 
 namespace gengodb::compiler::dialect::gpm::detail {
 using namespace lingodb::compiler::dialect::relalg;
-llvm::SmallVector<VariableTermAttr, 4> getBoundVariables(mlir::Operation* op) {
-    llvm::SmallVector<VariableTermAttr, 4> vx;
-    for (auto named : op->getAttrs()) {
-        if (const auto& v = mlir::dyn_cast_or_null<VariableTermAttr>(named.getValue())) {
-            if (v.hasBinding()) {
-                vx.push_back(v);
-            }
-        }
-    }
-    return vx;
+inline auto filterVariableTerms(mlir::Operation* op, bool isBound) {
+    return llvm::make_filter_range(
+      op->getAttrs(), [&](mlir::NamedAttribute attr) {
+        auto v = mlir::dyn_cast<VariableTermAttr>(attr.getValue());
+        return v && (v.hasBinding() == isBound);
+      });
 }
-llvm::SmallVector<VariableTermAttr, 4> getUnboundVariables(mlir::Operation* op) {
-    llvm::SmallVector<VariableTermAttr, 4> vx;
-    for (auto named : op->getAttrs()) {
-        if (const auto& v = mlir::dyn_cast_or_null<VariableTermAttr>(named.getValue())) {
-            if (!v.hasBinding()) {
-                vx.push_back(v);
-            }
-        }
-    }
-    return vx;
-}
-ColumnSet getCreatedColumns(mlir::Operation* op) {
-    const auto vx = getUnboundVariables(op);
+ColumnSet getCreatedVariables(mlir::Operation* op) {
     ColumnSet columns;
-    for (const auto& v : vx) {
-        columns.insert(v.getProducedBinding().getColumnPtr().get());
+    for (auto x : filterVariableTerms(op, false)) {
+        columns.insert(mlir::cast<VariableTermAttr>(x.getValue())
+            .getProducedBinding().getColumnPtr().get());
     }
     return columns;
 }
-ColumnSet getFreeColumns(mlir::Operation* op) {
-    const auto vx = getBoundVariables(op);
+ColumnSet getBoundVariables(mlir::Operation* op) {
     ColumnSet columns;
-    for (const auto& v : vx) {
-        columns.insert(v.getBindingReference().getColumnPtr().get());
+    for (auto x : filterVariableTerms(op, true)) {
+        columns.insert(mlir::cast<VariableTermAttr>(x.getValue())
+            .getBindingReference().getColumnPtr().get());
     }
     return columns;
+}
+ColumnSet getAllVariables(mlir::Operation* op) {
+    return getBoundVariables(op)
+        .insert(getCreatedVariables(op));
 }
 
 } // namespace gengodb::compiler::dialect::gpm::detail

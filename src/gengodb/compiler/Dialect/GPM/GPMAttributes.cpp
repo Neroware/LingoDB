@@ -44,14 +44,11 @@ void BNodeTermAttr::print(mlir::AsmPrinter &printer) const {
     return BNodeTermAttr::get(context, mlir::StringAttr::get(context, localId));
 }
 void VariableTermAttr::print(mlir::AsmPrinter &printer) const {
-    printer << "?";
-    printer << getName();
-    printer << "{" << getBinding() << "}";
+    printer << "?{" << getBinding() << "}";
 }
 ::mlir::Attribute VariableTermAttr::parse(::mlir::AsmParser &parser, ::mlir::Type odsType) {
     auto context = parser.getContext();
-    std::string var;
-    if (parser.parseQuestion() || parser.parseString(&var) || parser.parseLBrace()) {
+    if (parser.parseQuestion() || parser.parseLBrace()) {
         return {};
     }
     mlir::Attribute binding;
@@ -62,7 +59,7 @@ void VariableTermAttr::print(mlir::AsmPrinter &printer) const {
     if (!binding || parser.parseRBrace()) {
         return {};
     }
-    return VariableTermAttr::get(context, mlir::StringAttr::get(context, var), binding);
+    return VariableTermAttr::get(context, binding);
 }
 
 } // namespace gengodb::compiler::dialect::gpm
