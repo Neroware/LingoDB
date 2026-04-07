@@ -2,6 +2,8 @@
 
 #include "gengodb/compiler/Dialect/GPM/IR/GPMDialect.h"
 
+#include "lingodb/compiler/Dialect/TupleStream/TupleStreamOps.h"
+
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/IR/OpImplementation.h"
@@ -167,6 +169,45 @@ void printTerm(OpAsmPrinter& p, mlir::Operation* op, mlir::Attribute attr) {
             p << "}";
         });
 }
+ParseResult parseCustRegion(OpAsmParser& parser, Region& result) {
+   OpAsmParser::Argument predArgument;
+   SmallVector<OpAsmParser::Argument, 4> regionArgs;
+   SmallVector<Type, 4> argTypes;
+   if (parser.parseLParen()) {
+      return failure();
+   }
+   while (true) {
+      Type predArgType;
+      if (!parser.parseOptionalRParen()) {
+         break;
+      }
+      if (parser.parseArgument(predArgument) || parser.parseColonType(predArgType)) {
+         return failure();
+      }
+      predArgument.type = predArgType;
+      regionArgs.push_back(predArgument);
+      if (!parser.parseOptionalComma()) { continue; }
+      if (parser.parseRParen()) { return failure(); }
+      break;
+   }
+
+   if (parser.parseRegion(result, regionArgs)) return failure();
+   return success();
+}
+void printCustRegion(OpAsmPrinter& p, Operation* op, Region& r) {
+   p << "(";
+   bool first = true;
+   for (auto arg : r.front().getArguments()) {
+      if (first) {
+         first = false;
+      } else {
+         p << ",";
+      }
+      p << arg << ": " << arg.getType();
+   }
+   p << ")";
+   p.printRegion(r, false, true);
+}
 } // namespace
 
 ::mlir::LogicalResult gpm::TriplePatternOp::verify() {
@@ -190,6 +231,20 @@ void printTerm(OpAsmPrinter& p, mlir::Operation* op, mlir::Attribute attr) {
         return emitOpError("predicate cannot be a blank node");
     }
     return mlir::success();
+}
+::mlir::LogicalResult gpm::BasicGraphPatternOp::verify() {
+    return std::all_of(getPattern().getOps().begin(), getPattern().getOps().end(), [](const Operation& op){
+        return mlir::isa<gpm::TriplePatternOp, tuples::ReturnOp>(op);
+    }) ? mlir::success() : emitOpError("A basic graph pattern must only contain triples.");
+}
+llvm::SmallVector<gpm::TriplePatternOp, 16> gpm::BasicGraphPatternOp::getTriples() {
+    llvm::SmallVector<gpm::TriplePatternOp, 16> result;
+    for (auto &op : getPattern().getOps()) {
+        if (auto triple = mlir::dyn_cast_or_null<gpm::TriplePatternOp>(&op)) {
+            result.push_back(triple);
+        }
+    }
+    return result;
 }
 
 #define GET_OP_CLASSES

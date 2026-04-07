@@ -11,41 +11,43 @@
 
 namespace gengodb::compiler::dialect::gpm::detail {
 using namespace lingodb::compiler::dialect::relalg;
-ColumnSet getBoundVariables(mlir::Operation* op) {
-    ColumnSet bindings;
+llvm::SmallVector<VariableTermAttr, 4> getBoundVariables(mlir::Operation* op) {
+    llvm::SmallVector<VariableTermAttr, 4> vx;
     for (auto named : op->getAttrs()) {
         if (const auto& v = mlir::dyn_cast_or_null<VariableTermAttr>(named.getValue())) {
             if (v.hasBinding()) {
-                bindings.insert(v.getBindingReference().getColumnPtr().get());
+                vx.push_back(v);
             }
         }
     }
-    return bindings;
+    return vx;
 }
-ColumnSet getUnboundVariables(mlir::Operation* op) {
-    ColumnSet bindings;
+llvm::SmallVector<VariableTermAttr, 4> getUnboundVariables(mlir::Operation* op) {
+    llvm::SmallVector<VariableTermAttr, 4> vx;
     for (auto named : op->getAttrs()) {
         if (const auto& v = mlir::dyn_cast_or_null<VariableTermAttr>(named.getValue())) {
             if (!v.hasBinding()) {
-                bindings.insert(v.getProducedBinding().getColumnPtr().get());
+                vx.push_back(v);
             }
         }
     }
-    return bindings;
+    return vx;
 }
-ColumnSet getAllVariables(mlir::Operation* op) {
-    ColumnSet vars;
-    for (auto named : op->getAttrs()) {
-        if (const auto& v = mlir::dyn_cast_or_null<VariableTermAttr>(named.getValue())) {
-            if (v.hasBinding()) {
-                vars.insert(v.getBindingReference().getColumnPtr().get());
-            }
-            else {
-                vars.insert(v.getProducedBinding().getColumnPtr().get());
-            }
-        }
+ColumnSet getCreatedColumns(mlir::Operation* op) {
+    const auto vx = getUnboundVariables(op);
+    ColumnSet columns;
+    for (const auto& v : vx) {
+        columns.insert(v.getProducedBinding().getColumnPtr().get());
     }
-    return vars;
+    return columns;
+}
+ColumnSet getFreeColumns(mlir::Operation* op) {
+    const auto vx = getBoundVariables(op);
+    ColumnSet columns;
+    for (const auto& v : vx) {
+        columns.insert(v.getBindingReference().getColumnPtr().get());
+    }
+    return columns;
 }
 
 } // namespace gengodb::compiler::dialect::gpm::detail
