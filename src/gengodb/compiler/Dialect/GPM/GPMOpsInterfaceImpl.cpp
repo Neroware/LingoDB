@@ -41,4 +41,18 @@ ColumnSet getAllVariables(mlir::Operation* op) {
 
 } // namespace gengodb::compiler::dialect::gpm::detail
 
+namespace gengodb::compiler::dialect {
+
+lingodb::compiler::dialect::relalg::ColumnSet gpm::BasicGraphPatternOp::getAllVariables() {
+    lingodb::compiler::dialect::relalg::ColumnSet res;
+    getPattern().walk([&](TriplePatternOp triple){
+        res.insert(triple.getAllVariables());
+    });
+    return res;
+}
+
+} // namespace gengodb::compiler::dialect
+
+
+
 #include "gengodb/compiler/Dialect/GPM/IR/GPMOpsInterfaces.cpp.inc"

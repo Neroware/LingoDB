@@ -236,11 +236,9 @@ void printCustRegion(OpAsmPrinter& p, Operation* op, Region& r) {
 }
 llvm::SmallVector<gpm::TriplePatternOp, 16> gpm::BasicGraphPatternOp::getTriples() {
     llvm::SmallVector<gpm::TriplePatternOp, 16> result;
-    for (auto &op : getPattern().getOps()) {
-        if (auto triple = mlir::dyn_cast_or_null<gpm::TriplePatternOp>(&op)) {
-            result.push_back(triple);
-        }
-    }
+    getPattern().walk([&](gpm::TriplePatternOp triple){
+        result.push_back(triple);
+    });
     return result;
 }
 

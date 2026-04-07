@@ -44,6 +44,9 @@ def BasicGraphPatternOp : GPM_Op<"basic_graph_pattern", [Pure,GPMOperator]> {
   let assemblyFormat = [{  $rel custom<CustRegion>($pattern) attr-dict  }];
   let extraClassDeclaration = [{
     llvm::SmallVector<TriplePatternOp, 16> getTriples();
+    lingodb::compiler::dialect::relalg::ColumnSet getCreatedVariables() { return {}; }
+    lingodb::compiler::dialect::relalg::ColumnSet getBoundVariables() { return getAllVariables(); }
+    lingodb::compiler::dialect::relalg::ColumnSet getAllVariables();
   }];
   let hasVerifier = 1;
 }
