@@ -51,4 +51,11 @@ def BasicGraphPatternOp : GPM_Op<"basic_graph_pattern", [Pure,GPMOperator]> {
   let hasVerifier = 1;
 }
 
+def InnerJoinOp : GPM_Op<"join", [Pure,GPMOperator]> {
+  let summary = "join over bound variables";
+  let arguments = (ins TupleStream:$left, TupleStream:$right);
+  let results = (outs TupleStream:$res);
+  let assemblyFormat = [{  $left `,` $right attr-dict  }];
+}
+
 #endif // GENGODB_DIALECT_GPM_IR_GPMOPS
