@@ -16,7 +16,9 @@ namespace gengodb::compiler::dialect::gpm::detail {
 using namespace lingodb::compiler::dialect::relalg;
 ColumnSet getCreatedVariables(mlir::Operation* op);
 ColumnSet getBoundVariables(mlir::Operation* op);
-ColumnSet getAllVariables(mlir::Operation* op);
+ColumnSet getUsedVariables(mlir::Operation* op);
+ColumnSet getAvailableVariables(mlir::Operation* op);
+void moveSubTreeBefore(mlir::Operation* op, mlir::Operation* before);
 } // namespace gengodb::compiler::dialect::gpm::detail
 class GPMOperator;
 #define GET_OP_CLASSES

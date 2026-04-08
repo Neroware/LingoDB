@@ -234,10 +234,10 @@ void printCustRegion(OpAsmPrinter& p, Operation* op, Region& r) {
         return mlir::isa<gpm::TriplePatternOp, tuples::ReturnOp>(op);
     }) ? mlir::success() : emitOpError("A basic graph pattern must only contain triples.");
 }
-llvm::SmallVector<gpm::TriplePatternOp, 16> gpm::BasicGraphPatternOp::getTriples() {
-    llvm::SmallVector<gpm::TriplePatternOp, 16> result;
+llvm::SmallVector<std::tuple<Attribute, Attribute, Attribute>, 16> gpm::BasicGraphPatternOp::getTriples() {
+    llvm::SmallVector<std::tuple<Attribute, Attribute, Attribute>, 16> result;
     getPattern().walk([&](gpm::TriplePatternOp triple){
-        result.push_back(triple);
+        result.push_back(std::make_tuple(triple.getS(), triple.getP(), triple.getO()));
     });
     return result;
 }
