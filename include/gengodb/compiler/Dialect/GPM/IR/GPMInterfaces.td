@@ -30,21 +30,21 @@ InterfaceMethod<
 >,
 InterfaceMethod<
     "",
-    "void", "moveSubTreeBefore",(ins "Operator":$before),"", /*defaultImplementation=*/[{
+    "void", "moveSubTreeBefore",(ins "GPMOperator":$before),"", /*defaultImplementation=*/[{
     gengodb::compiler::dialect::gpm::detail::moveSubTreeBefore(this->getOperation(),before);
 }]
 >,
 InterfaceMethod<
         "get children of operator",
-        "llvm::SmallVector<Operator,4>", "getChildren",(ins ),"", /*defaultImplementation=*/[{
-    llvm::SmallVector<Operator,4> children;
+        "llvm::SmallVector<GPMOperator,4>", "getChildren",(ins ),"", /*defaultImplementation=*/[{
+    llvm::SmallVector<GPMOperator,4> children;
     auto op=this->getOperation();
     for (auto operand : op->getOperands()) {
         mlir::Type t=operand.getType();
         bool isreltype=mlir::isa<lingodb::compiler::dialect::tuples::TupleStreamType>(t);
         auto childOp=operand.getDefiningOp();
         if (isreltype&&childOp) {
-            auto childOperator=mlir::dyn_cast_or_null<Operator>(childOp);
+            auto childOperator=mlir::dyn_cast_or_null<GPMOperator>(childOp);
             if(childOperator){
                     children.push_back(childOperator);
             }
@@ -55,9 +55,9 @@ InterfaceMethod<
 >,
 InterfaceMethod<
         "get children of operator",
-        "llvm::SmallVector<Operator,4>", "getAllSubOperators",(ins ),"", /*defaultImplementation=*/[{
-    llvm::SmallVector<Operator,4> suboperators;
-    suboperators.push_back(mlir::dyn_cast_or_null<Operator>(this->getOperation()));
+        "llvm::SmallVector<GPMOperator,4>", "getAllSubOperators",(ins ),"", /*defaultImplementation=*/[{
+    llvm::SmallVector<GPMOperator,4> suboperators;
+    suboperators.push_back(mlir::dyn_cast_or_null<GPMOperator>(this->getOperation()));
     auto children=this->getChildren();
     for (auto child : children) {
         auto subsub=child.getAllSubOperators();
@@ -68,7 +68,7 @@ InterfaceMethod<
 >,
 InterfaceMethod<
         "set children of operator",
-        "void ", "setChildren",(ins "llvm::SmallVector<Operator,4>":$children),"", /*defaultImplementation=*/[{
+        "void ", "setChildren",(ins "llvm::SmallVector<GPMOperator,4>":$children),"", /*defaultImplementation=*/[{
     auto op=this->getOperation();
     size_t i=0;
     size_t j=0;
@@ -90,6 +90,32 @@ InterfaceMethod<
     return this->getOperation()->getResult(0);
 }]
 >,
+];
+}
+def GPMBinaryOperator : OpInterface<"GPMBinaryOperator"> {
+let methods = [
+InterfaceMethod<
+        "get left child",
+        "mlir::Operation*", "leftChild",(ins ),"", /*defaultImplementation=*/[{
+return this->getOperation()->getOperand(0).getDefiningOp();
+}]
+>,
+InterfaceMethod<
+        "get right child",
+        "mlir::Operation*", "rightChild",(ins ),"", /*defaultImplementation=*/[{
+return this->getOperation()->getOperand(1).getDefiningOp();
+}]
+>
+];
+}
+def GPMUnaryOperator : OpInterface<"GPMUnaryOperator"> {
+let methods = [
+InterfaceMethod<
+        "get all attributes that are used directly by this operator",
+        "mlir::Operation*", "child",(ins ),"", /*defaultImplementation=*/[{
+return this->getOperation()->getOperand(0).getDefiningOp();
+}]
+>
 ];
 }
 
