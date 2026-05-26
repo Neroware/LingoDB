@@ -1,0 +1,78 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 3.87kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/ubuntu:24.04
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 96B done
+#3 DONE 0.0s
+
+#4 [internal] load build context
+#4 transferring context: 40B done
+#4 DONE 0.0s
+
+#5 [stage-0  1/17] FROM docker.io/library/ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
+#5 resolve docker.io/library/ubuntu:24.04@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b 0.0s done
+#5 DONE 0.0s
+
+#6 [stage-0 12/17] RUN git clone https://github.com/tentris/rdf4cpp.git &&     cd rdf4cpp &&     git checkout v0.1.13 &&     wget https://github.com/conan-io/cmake-conan/raw/develop2/conan_provider.cmake         -O conan_provider.cmake &&     cmake -B build_dir         -DCMAKE_BUILD_TYPE=Release         -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=conan_provider.cmake &&     cmake --build build_dir -j$(nproc) &&     cd build_dir &&     make install
+#6 CACHED
+
+#7 [stage-0 15/17] RUN --mount=type=ssh git clone git@github.com:Neroware/LingoDB.git lingodb
+#7 CACHED
+
+#8 [stage-0  8/17] RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb &&     apt-get install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+#8 CACHED
+
+#9 [stage-0  6/17] RUN wget https://apt.llvm.org/llvm.sh &&     chmod +x llvm.sh &&     ./llvm.sh 20
+#9 CACHED
+
+#10 [stage-0  9/17] RUN apt-get update &&     apt-get install -y         libarrow-dev=21.*         libarrow-compute-dev=21.*         libparquet-dev=21.*         libboost-context1.83-dev &&     rm -rf /var/lib/apt/lists/*
+#10 CACHED
+
+#11 [stage-0  7/17] RUN apt-get update &&     apt-get install -y         clang-20         llvm-20         libclang-20-dev         llvm-20-dev         libmlir-20-dev         mlir-20-tools         clang-tidy-20 &&     rm -rf /var/lib/apt/lists/*
+#11 CACHED
+
+#12 [stage-0 10/17] RUN conan profile detect --force &&     conan remote add dice-group     https://conan.dice-research.org/artifactory/api/conan/tentris
+#12 CACHED
+
+#13 [stage-0  5/17] WORKDIR /tmp
+#13 CACHED
+
+#14 [stage-0  4/17] RUN pip install --upgrade pip &&     pip install lit conan
+#14 CACHED
+
+#15 [stage-0  2/17] RUN apt-get update &&     apt-get upgrade -y &&     apt-get install -y         git         openssh-client         ssh         vim         gdb         wget         curl         ca-certificates         software-properties-common         build-essential         cmake         ninja-build         flex         bison         python3         python3-pip         python3-venv         lsb-release         pkg-config         catch2 &&     rm -rf /var/lib/apt/lists/*
+#15 CACHED
+
+#16 [stage-0 11/17] WORKDIR /opt
+#16 CACHED
+
+#17 [stage-0 14/17] WORKDIR /workspace
+#17 CACHED
+
+#18 [stage-0  3/17] RUN python3 -m venv /opt/venv
+#18 CACHED
+
+#19 [stage-0 13/17] RUN mkdir -p /root/.ssh &&     ssh-keyscan github.com >> /root/.ssh/known_hosts
+#19 CACHED
+
+#20 [stage-0 16/17] RUN mkdir -p /workspace/lingodb/.vscode
+#20 CACHED
+
+#21 [stage-0 17/17] COPY vscode-launch.json /workspace/lingodb/.vscode/launch.json
+#21 DONE 0.0s
+
+#22 exporting to image
+#22 exporting layers 0.0s done
+#22 exporting manifest sha256:91af512664ca027c011ddeba8d5dc79d53214cb40f5b7e18ca29f1c6f1d69629 done
+#22 exporting config sha256:4ff12e256a6f63cc6036b3a772dcf83de6d029d7602cbb8505e86586f85e0812 done
+#22 exporting attestation manifest sha256:655bc4a85830b75e90904fe9dd58862aeb0d659d9cee880b00da7dd237ac8db4 0.0s done
+#22 exporting manifest list sha256:12c7cc0deed997da855c01852ed1ca861e3fbf8a3ff8a39c516e3966af22c03b 0.0s done
+#22 naming to docker.io/library/pi:lingodb-dev done
+#22 unpacking to docker.io/library/pi:lingodb-dev 0.0s done
+#22 DONE 0.1s
