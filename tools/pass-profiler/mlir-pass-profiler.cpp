@@ -2,6 +2,7 @@
 #include "lingodb/compiler/Conversion/DBToStd/DBToStd.h"
 #include "lingodb/compiler/Conversion/RelAlgToSubOp/RelAlgToSubOpPass.h"
 #include "lingodb/compiler/Conversion/SubOpToControlFlow/SubOpToControlFlowPass.h"
+#include "gengodb/compiler/Conversion/GPMToSubOp/GPMToSubOpPass.h"
 #include "lingodb/compiler/Dialect/Arrow/IR/ArrowDialect.h"
 #include "lingodb/compiler/Dialect/DB/IR/DBDialect.h"
 #include "lingodb/compiler/Dialect/RelAlg/IR/RelAlgDialect.h"
@@ -84,6 +85,7 @@ cl::opt<bool> enablePerf("enable-perf",
                          cl::init(false));
 
 using namespace lingodb::compiler::dialect;
+using namespace gengodb::compiler::dialect;
 
 void registerAllPasses() {
    // Register all standard MLIR passes
@@ -95,6 +97,8 @@ void registerAllPasses() {
    db::registerDBConversionPasses();
    subop::registerSubOpToControlFlowConversionPasses();
    subop::registerSubOpTransformations();
+
+   gpm::registerGPMToSubOpConversionPasses();
 
    ::mlir::registerPass([]() -> std::unique_ptr<::mlir::Pass> {
       return lingodb::compiler::dialect::arrow::createLowerToStdPass();
