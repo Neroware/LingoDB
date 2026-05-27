@@ -94,13 +94,13 @@ GraphBase* GraphHelper::getGraph(lingodb::runtime::VarLen32 name, lingodb::runti
     if (auto maybeGraph = session.getCatalog()->getTypedEntry<gengodb::catalog::RDFGraphCatalogEntry>(name)) {
         auto graph = maybeGraph.value();
         if (graph->getIri().identifier() != iri.str()) {
-            // TODO support named graphs
-            throw std::runtime_error("The record entry does not contain the requested named graph");
+            throw std::runtime_error("Found graph record but IRIs do not match!");
         }
         auto& pgraph = graph->getStorage();
         getCurrentExecutionContext()->registerState({&pgraph, [](void* ptr){ delete reinterpret_cast<PropertyGraph*>(ptr); }});
         return &pgraph;
     } else {
+        // TODO Load local file (file://) or download graph from the semantic web (http://)
         throw std::runtime_error("could not find graph");
     }
 }

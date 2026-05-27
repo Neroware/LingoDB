@@ -43,7 +43,7 @@ def GetExternalGraphOp : Graph_Op<"subop.get_external_graph", [Pure,StateCreator
     let summary = "get external graph";
     let arguments = (ins StrAttr : $name, StrAttr : $graphId);
     let results = (outs Graph : $res);
-    let assemblyFormat = [{ `{` `name` `=`  $name `,` `uniqueId` `=` $graphId `}` `:` type($res) attr-dict }];
+    let assemblyFormat = [{ `{` `name` `=`  $name `,` `id` `=` $graphId `}` `:` type($res) attr-dict }];
 }
 
 def ScanGraphOp : Graph_Op<"subop.scan_graph", [Pure,SubOperator,DeclareOpInterfaceMethods<StateUsingSubOperator>]> {
